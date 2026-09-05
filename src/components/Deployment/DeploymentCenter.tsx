@@ -163,8 +163,8 @@ export const DeploymentCenter: React.FC<DeploymentCenterProps> = ({
             </div>
           </div>
         </div>
-        <div className="text-[11px] text-zinc-500 bg-zinc-900/80 px-2.5 py-1 rounded-lg border border-zinc-800 shrink-0">
-          Standard <code className="text-zinc-300">package-lock.json</code> active
+        <div className="text-[11px] text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20 shrink-0 font-medium">
+          CI Direct Install (.npmrc) Active
         </div>
       </div>
 

@@ -147,6 +147,27 @@ export const DeploymentCenter: React.FC<DeploymentCenterProps> = ({
 
       </div>
 
+      {/* Cloudflare Pages Quick Guide Tip */}
+      <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+        <div className="flex items-start gap-2.5">
+          <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400 mt-0.5 sm:mt-0 shrink-0">
+            <Zap className="w-4 h-4" />
+          </div>
+          <div>
+            <span className="font-semibold text-zinc-200">Cloudflare Pages Recommended Settings:</span>
+            <div className="text-zinc-400 text-[11px] mt-0.5 flex flex-wrap gap-x-4 gap-y-1">
+              <span>Framework preset: <strong className="text-amber-300 font-mono">Vite</strong></span>
+              <span>Build command: <strong className="text-amber-300 font-mono">npm run build</strong></span>
+              <span>Output directory: <strong className="text-amber-300 font-mono">dist</strong></span>
+              <span>Package Manager: <strong className="text-emerald-400 font-mono">npm (Node.js)</strong></span>
+            </div>
+          </div>
+        </div>
+        <div className="text-[11px] text-zinc-500 bg-zinc-900/80 px-2.5 py-1 rounded-lg border border-zinc-800 shrink-0">
+          Standard <code className="text-zinc-300">package-lock.json</code> active
+        </div>
+      </div>
+
       {/* Deployment Table / Card Grid */}
       <div className="p-5 rounded-3xl bg-zinc-900/60 border border-zinc-800 space-y-4">
         

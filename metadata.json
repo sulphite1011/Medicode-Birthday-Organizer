@@ -1,0 +1,6 @@
+{
+  "name": "WishCraft Studio — Birthday Websites Organizer",
+  "description": "Private creator command center for managing birthday-wishing websites, deployments, multi-platform social showcases, client requests, and birthday website generation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

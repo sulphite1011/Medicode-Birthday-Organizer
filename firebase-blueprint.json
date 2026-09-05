@@ -1,0 +1,80 @@
+{
+  "entities": {
+    "Project": {
+      "title": "Project",
+      "description": "Birthday website project managed by the creator",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "recipientName": { "type": "string", "maxLength": 150 },
+        "clientName": { "type": "string", "maxLength": 150 },
+        "clientContact": { "type": "string", "maxLength": 200 },
+        "status": { "type": "string", "enum": ["draft", "in_progress", "ready", "live", "archived"] },
+        "theme": { "type": "string", "maxLength": 100 },
+        "githubRepoUrl": { "type": "string", "maxLength": 500 },
+        "liveWebsiteUrl": { "type": "string", "maxLength": 500 },
+        "deploymentPlatform": { "type": "string", "enum": ["cloudflare", "netlify", "vercel", "github_pages", "other"] },
+        "deploymentNotes": { "type": "string", "maxLength": 2000 },
+        "lastDeployedAt": { "type": "string", "maxLength": 64 },
+        "notes": { "type": "string", "maxLength": 5000 },
+        "isPinned": { "type": "boolean" },
+        "socialLinks": { "type": "array" },
+        "builderData": { "type": "object" },
+        "orderId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "name", "recipientName", "status", "createdAt"]
+    },
+    "ClientRequest": {
+      "title": "ClientRequest",
+      "description": "Internal order and inquiry from a client for a birthday website",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "clientName": { "type": "string", "maxLength": 150 },
+        "clientContact": { "type": "string", "maxLength": 200 },
+        "recipientName": { "type": "string", "maxLength": 150 },
+        "websiteType": { "type": "string", "maxLength": 100 },
+        "requirements": { "type": "string", "maxLength": 5000 },
+        "budget": { "type": "string", "maxLength": 50 },
+        "paymentStatus": { "type": "string", "enum": ["unpaid", "deposit_paid", "fully_paid", "refunded"] },
+        "status": { "type": "string", "enum": ["new", "in_progress", "ready_for_preview", "delivered", "cancelled"] },
+        "orderDate": { "type": "string", "maxLength": 64 },
+        "dueDate": { "type": "string", "maxLength": 64 },
+        "notes": { "type": "string", "maxLength": 5000 },
+        "connectedProjectId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "clientName", "recipientName", "status", "createdAt"]
+    },
+    "AppSettings": {
+      "title": "AppSettings",
+      "description": "Creator studio configuration and preferences",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "creatorName": { "type": "string", "maxLength": 100 },
+        "defaultPlatform": { "type": "string", "maxLength": 50 },
+        "currencySymbol": { "type": "string", "maxLength": 10 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      }
+    }
+  },
+  "firestore": {
+    "/projects/{projectId}": {
+      "schema": "Project",
+      "description": "Creator birthday website projects and showcase links"
+    },
+    "/client_requests/{requestId}": {
+      "schema": "ClientRequest",
+      "description": "Incoming client orders and requirements"
+    },
+    "/settings/{settingId}": {
+      "schema": "AppSettings",
+      "description": "Studio creator preferences and system configuration"
+    }
+  }
+}

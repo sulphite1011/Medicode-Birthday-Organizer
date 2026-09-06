@@ -5,17 +5,17 @@ import {
   Star,
   MoreVertical,
   Edit,
-  Copy,
-  Check,
   Trash2,
   CopyPlus,
-  Globe,
-  Share2,
+  Play,
   CodeXml,
   Sparkles,
-  Calendar
+  Calendar,
+  Share2,
+  User,
+  MoreHorizontal
 } from 'lucide-react';
-import { Project, SocialLink, SocialPlatform } from '../../types';
+import { Project, SocialPlatform } from '../../types';
 
 interface ProjectCardProps {
   project: Project;
@@ -37,13 +37,29 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   onOpenBuilder,
 }) => {
   const [showMenu, setShowMenu] = useState(false);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  const handleCopy = (text: string, fieldName: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(text);
-    setCopiedField(fieldName);
-    setTimeout(() => setCopiedField(null), 1800);
+  const getCoverImage = (p: Project) => {
+    if (p.coverImageUrl) return p.coverImageUrl;
+    const t = (p.theme || '').toLowerCase();
+    if (t.includes('rose') || t.includes('quartz')) {
+      return 'https://images.unsplash.com/photo-1558636508-e0db3814bd1d?w=800&auto=format&fit=crop&q=80';
+    }
+    if (t.includes('celestial') || t.includes('midnight') || t.includes('star')) {
+      return 'https://images.unsplash.com/photo-1532767153582-b1a0e5145009?w=800&auto=format&fit=crop&q=80';
+    }
+    if (t.includes('amber') || t.includes('sunset') || t.includes('gold')) {
+      return 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800&auto=format&fit=crop&q=80';
+    }
+    return 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800&auto=format&fit=crop&q=80';
+  };
+
+  const getThemeEmoji = (theme: string) => {
+    const t = theme.toLowerCase();
+    if (t.includes('rose')) return '🌹';
+    if (t.includes('celestial') || t.includes('midnight')) return '🌙';
+    if (t.includes('amber') || t.includes('sunset')) return '🌅';
+    if (t.includes('gold') || t.includes('luxe')) return '👑';
+    return '✨';
   };
 
   const getPlatformIcon = (platform: SocialPlatform) => {
@@ -60,38 +76,15 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         return '📌';
       case 'x':
         return '𝕏';
-      case 'threads':
-        return '🧵';
-      case 'snapchat':
-        return '👻';
       default:
         return '🔗';
     }
   };
 
-  const getPlatformBadgeStyle = (platform: SocialPlatform) => {
-    switch (platform) {
-      case 'tiktok':
-        return 'bg-zinc-900 text-pink-400 border-pink-500/30 hover:border-pink-400';
-      case 'instagram':
-        return 'bg-gradient-to-r from-purple-950/50 to-pink-950/50 text-pink-300 border-pink-500/30 hover:border-pink-400';
-      case 'youtube':
-        return 'bg-red-950/40 text-red-400 border-red-500/30 hover:border-red-400';
-      case 'facebook':
-        return 'bg-blue-950/40 text-blue-300 border-blue-500/30 hover:border-blue-400';
-      case 'pinterest':
-        return 'bg-rose-950/40 text-rose-300 border-rose-500/30 hover:border-rose-400';
-      case 'x':
-        return 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:border-zinc-500';
-      default:
-        return 'bg-zinc-900 text-zinc-300 border-zinc-700 hover:border-zinc-500';
-    }
-  };
-
   const formatViews = (views?: number | null) => {
     if (!views) return null;
-    if (views >= 1000000) return (views / 1000000).toFixed(1) + 'M';
-    if (views >= 1000) return (views / 1000).toFixed(1) + 'K';
+    if (views >= 1000000) return (views / 1000000).toFixed(0) + 'M';
+    if (views >= 1000) return (views / 1000).toFixed(0) + 'K';
     return views.toLocaleString();
   };
 
@@ -99,312 +92,302 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
     switch (status) {
       case 'live':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-sm shadow-emerald-950/40">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Live Website
-          </span>
-        );
-      case 'ready':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-            Ready for Preview
+            Live
           </span>
         );
       case 'in_progress':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-            In Production
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+            In Progress
+          </span>
+        );
+      case 'ready':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+            Delivered
           </span>
         );
       case 'draft':
+      default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700">
             Draft
           </span>
         );
-      case 'archived':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-zinc-900 text-zinc-500 border border-zinc-800">
-            Archived
-          </span>
-        );
     }
   };
 
-  const getPlatformLabel = (platform: Project['deploymentPlatform']) => {
-    switch (platform) {
-      case 'cloudflare':
-        return 'Cloudflare Pages';
-      case 'netlify':
-        return 'Netlify';
-      case 'vercel':
-        return 'Vercel';
-      case 'github_pages':
-        return 'GitHub Pages';
-      default:
-        return 'Custom Host';
-    }
-  };
+  const formattedDate = new Date(project.createdAt).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 
   return (
-    <div className={`relative rounded-2xl bg-zinc-900/70 border transition-all duration-200 flex flex-col justify-between ${
+    <div className={`group relative rounded-2xl bg-[#0b0e18] border transition-all duration-300 flex flex-col justify-between overflow-hidden shadow-xl shadow-black/40 ${
       project.isPinned
-        ? 'border-amber-500/40 shadow-lg shadow-amber-950/20 ring-1 ring-amber-500/20'
-        : 'border-zinc-800/80 hover:border-zinc-700 shadow-sm'
+        ? 'border-purple-500/40 ring-1 ring-purple-500/20'
+        : 'border-[#171d2d] hover:border-purple-500/40'
     }`}>
       
-      {/* Top Card Area */}
-      <div className="p-5">
+      {/* Top Bar: Favorite Pill, Status Badge & Dropdown */}
+      <div className="p-3.5 px-4 flex items-center justify-between gap-2 border-b border-[#141a29] bg-[#0d111d]">
         
-        {/* Header Row: Status, Platform, Pin, Menu */}
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            {getStatusBadge(project.status)}
-            <span className="px-2 py-0.5 text-[11px] font-medium rounded-md bg-zinc-800/80 text-zinc-300 border border-zinc-700/60">
-              {getPlatformLabel(project.deploymentPlatform)}
-            </span>
-          </div>
+        {/* Favorite Pill */}
+        <button
+          onClick={() => onTogglePin(project)}
+          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+            project.isPinned
+              ? 'bg-amber-400/15 text-amber-300 border border-amber-400/40 shadow-sm'
+              : 'bg-[#151928] text-zinc-400 hover:text-amber-300 border border-[#20273d]'
+          }`}
+        >
+          <Star className={`w-3.5 h-3.5 ${project.isPinned ? 'fill-amber-400 text-amber-400' : ''}`} />
+          <span>Favorite</span>
+        </button>
 
-          <div className="flex items-center gap-1">
+        {/* Right Status & Menu */}
+        <div className="flex items-center gap-2">
+          {getStatusBadge(project.status)}
+
+          <div className="relative">
             <button
-              onClick={() => onTogglePin(project)}
-              title={project.isPinned ? 'Unpin project' : 'Pin to top'}
-              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                project.isPinned
-                  ? 'text-amber-400 hover:text-amber-300 bg-amber-500/10'
-                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800'
-              }`}
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-[#1a2135] transition-colors cursor-pointer"
             >
-              <Star className={`w-4 h-4 ${project.isPinned ? 'fill-amber-400' : ''}`} />
+              <MoreVertical className="w-4 h-4" />
             </button>
 
-            {/* Quick Actions Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setShowMenu(!showMenu)}
-                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors cursor-pointer"
-              >
-                <MoreVertical className="w-4 h-4" />
-              </button>
-
-              {showMenu && (
-                <>
-                  <div className="fixed inset-0 z-20" onClick={() => setShowMenu(false)} />
-                  <div className="absolute right-0 top-8 z-30 w-48 rounded-xl bg-zinc-900 border border-zinc-700/80 shadow-2xl p-1.5 text-xs">
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        onEdit(project);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-zinc-200 hover:bg-zinc-800 transition-colors text-left"
-                    >
-                      <Edit className="w-3.5 h-3.5 text-amber-400" />
-                      Edit Project Details
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        onOpenBuilder(project);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-zinc-200 hover:bg-zinc-800 transition-colors text-left"
-                    >
-                      <CodeXml className="w-3.5 h-3.5 text-violet-400" />
-                      Customize in Builder
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        onManageSocials(project);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-zinc-200 hover:bg-zinc-800 transition-colors text-left"
-                    >
-                      <Share2 className="w-3.5 h-3.5 text-pink-400" />
-                      Social Showcase Links
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        onDuplicate(project);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-zinc-200 hover:bg-zinc-800 transition-colors text-left"
-                    >
-                      <CopyPlus className="w-3.5 h-3.5 text-sky-400" />
-                      Duplicate Website
-                    </button>
-                    <div className="my-1 border-t border-zinc-800" />
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        onDelete(project.id);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-rose-400 hover:bg-rose-950/40 transition-colors text-left"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                      Delete Project
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Project Name & Recipient */}
-        <div className="mb-3">
-          <h3 className="text-base font-bold text-zinc-100 tracking-tight line-clamp-1 font-['Outfit']">
-            {project.name}
-          </h3>
-          <div className="flex items-center gap-2 text-xs text-zinc-400 mt-1">
-            <span className="font-semibold text-rose-400/90 flex items-center gap-1">
-              🎂 Recipient: {project.recipientName}
-            </span>
-            {project.clientName && (
+            {showMenu && (
               <>
-                <span className="text-zinc-600">•</span>
-                <span className="text-zinc-400 line-clamp-1">Client: {project.clientName}</span>
+                <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
+                <div className="absolute right-0 top-8 z-40 w-48 rounded-xl bg-[#0f1424] border border-[#232c48] shadow-2xl p-1.5 text-xs text-zinc-200">
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      onOpenBuilder(project);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#1b233d] transition-colors text-left text-violet-300"
+                  >
+                    <CodeXml className="w-3.5 h-3.5" />
+                    Open Website Builder
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      onEdit(project);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#1b233d] transition-colors text-left"
+                  >
+                    <Edit className="w-3.5 h-3.5 text-amber-400" />
+                    Edit Details
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      onManageSocials(project);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#1b233d] transition-colors text-left"
+                  >
+                    <Share2 className="w-3.5 h-3.5 text-pink-400" />
+                    Social Showcase
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      onDuplicate(project);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#1b233d] transition-colors text-left"
+                  >
+                    <CopyPlus className="w-3.5 h-3.5 text-sky-400" />
+                    Duplicate Project
+                  </button>
+                  <div className="my-1 border-t border-[#1d243b]" />
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      onDelete(project.id);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-rose-400 hover:bg-rose-950/30 transition-colors text-left"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                    Delete Project
+                  </button>
+                </div>
               </>
             )}
           </div>
         </div>
 
-        {/* Theme Pill & Date */}
-        <div className="flex items-center gap-2 mb-4 text-xs text-zinc-500">
-          <span className="px-2 py-0.5 rounded-md bg-zinc-800/60 text-zinc-300 border border-zinc-700/50 flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-amber-400" />
-            {project.theme}
-          </span>
-          <span className="flex items-center gap-1 text-[11px] text-zinc-500">
-            <Calendar className="w-3 h-3" />
-            {new Date(project.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+      </div>
+
+      {/* Cinematic Media / Video Preview Banner */}
+      <div
+        onClick={() => onOpenBuilder(project)}
+        className="relative h-48 w-full overflow-hidden cursor-pointer group/thumb select-none"
+      >
+        <img
+          src={getCoverImage(project)}
+          alt={project.name}
+          className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-500"
+        />
+        
+        {/* Dark Vignette Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0b0e18] via-black/40 to-black/30" />
+
+        {/* Styled Cursive Greeting on Image */}
+        <div className="absolute top-4 left-4 right-4 pointer-events-none">
+          <span className="text-white text-base sm:text-lg font-serif italic drop-shadow-md tracking-wide">
+            Happy Birthday {project.recipientName}
           </span>
         </div>
 
-        {/* Notes if any */}
-        {project.notes && (
-          <p className="text-xs text-zinc-400/90 bg-zinc-950/40 p-2.5 rounded-xl border border-zinc-800/60 line-clamp-2 mb-4">
-            {project.notes}
-          </p>
-        )}
+        {/* Central Play Button */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full bg-black/40 group-hover/thumb:bg-purple-600/80 backdrop-blur-md border border-white/30 group-hover/thumb:border-white/80 flex items-center justify-center text-white shadow-2xl transition-all duration-300 group-hover/thumb:scale-110">
+            <Play className="w-5 h-5 ml-0.5 fill-white text-white" />
+          </div>
+        </div>
+      </div>
 
-        {/* Multi-Platform Social Showcase Links Section (Requirement #4) */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-400 mb-2">
-            <span className="flex items-center gap-1">
-              <Share2 className="w-3 h-3 text-rose-400" />
-              Social Showcase ({project.socialLinks?.length || 0})
-            </span>
+      {/* Project Body Info */}
+      <div className="p-5 space-y-3.5 flex-1 flex flex-col justify-between">
+        
+        {/* Title */}
+        <div>
+          <h3 className="text-base font-bold text-white tracking-tight font-['Outfit'] line-clamp-1">
+            {project.name}
+          </h3>
+
+          {/* Metadata Rows: Recipient, Client, Date & Theme */}
+          <div className="mt-2.5 space-y-1.5 text-xs text-zinc-300">
+            <div className="flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-zinc-400" />
+              <span>Recipient: <strong className="text-white font-semibold">{project.recipientName}</strong></span>
+            </div>
+
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-zinc-400" />
+                <span className="line-clamp-1">Client: <strong className="text-zinc-200 font-medium">{project.clientName || 'TikTok User'}</strong></span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <div className="flex items-center gap-1.5 text-zinc-400">
+                <Calendar className="w-3.5 h-3.5 text-zinc-400" />
+                <span>Created: {formattedDate}</span>
+              </div>
+
+              {/* Theme Pill */}
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#131929] border border-[#222a42] text-[11px] font-medium text-zinc-200">
+                <span>{getThemeEmoji(project.theme)}</span>
+                <span className="line-clamp-1">{project.theme}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Social Showcase Row */}
+        <div>
+          <div className="flex items-center justify-between text-[11px] text-zinc-400 mb-1.5">
+            <span className="font-medium">Social Showcase ({project.socialLinks?.length || 0})</span>
             <button
               onClick={() => onManageSocials(project)}
-              className="text-amber-400 hover:text-amber-300 text-[10px] font-semibold transition-colors cursor-pointer"
+              className="text-purple-400 hover:text-purple-300 font-semibold cursor-pointer text-[10px]"
             >
               + Add / Edit
             </button>
           </div>
 
-          {project.socialLinks && project.socialLinks.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {project.socialLinks.map((link) => {
-                const viewsStr = formatViews(link.viewCount);
+          <div className="flex flex-wrap gap-1.5">
+            {project.socialLinks && project.socialLinks.length > 0 ? (
+              project.socialLinks.map((sl) => {
+                const views = formatViews(sl.viewCount);
                 return (
                   <a
-                    key={link.id}
-                    href={link.url}
+                    key={sl.id}
+                    href={sl.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all hover:scale-105 active:scale-95 shadow-sm ${getPlatformBadgeStyle(
-                      link.platform
-                    )}`}
-                    title={`${link.platform.toUpperCase()}: ${link.url} ${link.notes ? `(${link.notes})` : ''}`}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#121626] hover:bg-[#192036] border border-[#1e253d] text-[11px] text-zinc-200 transition-colors shadow-sm"
+                    title={`${sl.platform.toUpperCase()}: ${sl.url}`}
                   >
-                    <span>{getPlatformIcon(link.platform)}</span>
-                    <span className="capitalize">{link.platform}</span>
-                    {viewsStr && (
-                      <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-zinc-950/60 font-mono text-zinc-200">
-                        {viewsStr}
+                    <span>{getPlatformIcon(sl.platform)}</span>
+                    <span className="capitalize">{sl.platform}</span>
+                    {views && (
+                      <span className="font-mono text-[10px] text-zinc-400">
+                        {views}
                       </span>
                     )}
                   </a>
                 );
-              })}
-            </div>
-          ) : (
-            <div
-              onClick={() => onManageSocials(project)}
-              className="text-center py-2 px-3 rounded-xl border border-dashed border-zinc-800 text-[11px] text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 cursor-pointer transition-colors"
-            >
-              No showcase videos linked yet. Click to add TikTok, Reels, Shorts...
-            </div>
-          )}
+              })
+            ) : (
+              <span className="text-[11px] text-zinc-400 italic">No social videos linked</span>
+            )}
+          </div>
         </div>
 
       </div>
 
-      {/* Footer Area with Quick Links & Code Launcher */}
-      <div className="p-3.5 px-5 bg-zinc-950/60 border-t border-zinc-800/80 rounded-b-2xl flex items-center justify-between gap-2">
-        
-        {/* Left Link Buttons */}
+      {/* Card Action Buttons Footer */}
+      <div className="p-3.5 px-4 bg-[#0d101c] border-t border-[#141a29] flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           {project.liveWebsiteUrl ? (
-            <div className="flex items-center">
-              <a
-                href={project.liveWebsiteUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-l-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-r-0 border-emerald-500/30 text-xs font-semibold transition-colors"
-                title="Open Live Website"
-              >
-                <Globe className="w-3.5 h-3.5" />
-                <span>Live Site</span>
-                <ExternalLink className="w-3 h-3 opacity-70" />
-              </a>
-              <button
-                onClick={(e) => handleCopy(project.liveWebsiteUrl!, 'live', e)}
-                className="px-2 py-1.5 rounded-r-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs transition-colors"
-                title="Copy Live URL"
-              >
-                {copiedField === 'live' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              </button>
-            </div>
+            <a
+              href={project.liveWebsiteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-600 hover:brightness-110 text-white text-xs font-bold shadow-md shadow-purple-900/30 transition-all cursor-pointer"
+            >
+              <Play className="w-3.5 h-3.5 fill-white" />
+              <span>Live Site</span>
+            </a>
           ) : (
-            <span className="text-xs text-zinc-600 italic">No live URL</span>
+            <button
+              onClick={() => onOpenBuilder(project)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-600 hover:brightness-110 text-white text-xs font-bold shadow-md shadow-purple-900/30 transition-all cursor-pointer"
+            >
+              <Play className="w-3.5 h-3.5 fill-white" />
+              <span>Open Site</span>
+            </button>
           )}
 
           {project.githubRepoUrl && (
-            <div className="flex items-center">
-              <a
-                href={project.githubRepoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-l-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-r-0 border-zinc-700 text-xs font-semibold transition-colors"
-                title="Open GitHub Repository"
-              >
-                <Github className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Repo</span>
-              </a>
-              <button
-                onClick={(e) => handleCopy(project.githubRepoUrl!, 'github', e)}
-                className="px-2 py-1.5 rounded-r-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 text-xs transition-colors"
-                title="Copy GitHub URL"
-              >
-                {copiedField === 'github' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              </button>
-            </div>
+            <a
+              href={project.githubRepoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#141928] hover:bg-[#1a2135] text-zinc-300 hover:text-white border border-[#202840] text-xs font-semibold transition-all cursor-pointer"
+              title="GitHub Repository"
+            >
+              <Github className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">GitHub</span>
+            </a>
           )}
+
+          <button
+            onClick={() => onEdit(project)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#141928] hover:bg-[#1a2135] text-zinc-300 hover:text-white border border-[#202840] text-xs font-semibold transition-all cursor-pointer"
+            title="Edit Project"
+          >
+            <Edit className="w-3.5 h-3.5 text-zinc-400" />
+            <span className="hidden sm:inline">Edit</span>
+          </button>
         </div>
 
-        {/* Right: Open in Builder button */}
         <button
-          onClick={() => onOpenBuilder(project)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-violet-600/30 to-rose-600/30 hover:from-violet-600/40 hover:to-rose-600/40 text-violet-200 border border-violet-500/30 text-xs font-semibold transition-all active:scale-95 cursor-pointer"
-          title="Open Website Customizer & Generator"
+          onClick={() => setShowMenu(!showMenu)}
+          className="p-2 rounded-xl bg-[#141928] hover:bg-[#1a2135] text-zinc-400 hover:text-white border border-[#202840] transition-all cursor-pointer"
+          title="More actions"
         >
-          <CodeXml className="w-3.5 h-3.5 text-violet-300" />
-          <span>Builder</span>
+          <MoreHorizontal className="w-4 h-4" />
         </button>
-
       </div>
 
     </div>

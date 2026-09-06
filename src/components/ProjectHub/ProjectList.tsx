@@ -3,14 +3,14 @@ import { Project, DeploymentPlatform, ProjectStatus, SocialPlatform } from '../.
 import { ProjectCard } from './ProjectCard';
 import {
   Search,
-  Filter,
   ArrowUpDown,
   Star,
   Plus,
   FolderHeart,
-  Globe,
   SlidersHorizontal,
-  X
+  X,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 
 interface ProjectListProps {
@@ -40,6 +40,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({
   const [socialPlatformFilter, setSocialPlatformFilter] = useState<SocialPlatform | 'all'>('all');
   const [pinnedOnly, setPinnedOnly] = useState(false);
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name' | 'recently_updated'>('newest');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Available themes extracted from projects
   const uniqueThemes = useMemo(() => {
@@ -54,25 +55,15 @@ export const ProjectList: React.FC<ProjectListProps> = ({
   // Filtering Logic
   const filteredProjects = useMemo(() => {
     return projects.filter((p) => {
-      // Pinned check
       if (pinnedOnly && !p.isPinned) return false;
-
-      // Status check
       if (statusFilter !== 'all' && p.status !== statusFilter) return false;
-
-      // Platform check
       if (platformFilter !== 'all' && p.deploymentPlatform !== platformFilter) return false;
-
-      // Theme check
       if (themeFilter !== 'all' && p.theme !== themeFilter) return false;
-
-      // Social Platform check
       if (socialPlatformFilter !== 'all') {
         const hasPlatform = p.socialLinks?.some((sl) => sl.platform === socialPlatformFilter);
         if (!hasPlatform) return false;
       }
 
-      // Search Query
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         const matchesName = p.name.toLowerCase().includes(query);
@@ -102,7 +93,6 @@ export const ProjectList: React.FC<ProjectListProps> = ({
   // Sorting Logic
   const sortedProjects = useMemo(() => {
     return [...filteredProjects].sort((a, b) => {
-      // Pinned always take precedence if not strictly sorting otherwise
       if (a.isPinned !== b.isPinned) {
         return a.isPinned ? -1 : 1;
       }
@@ -140,66 +130,92 @@ export const ProjectList: React.FC<ProjectListProps> = ({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       
       {/* Search & Control Toolbar */}
-      <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 backdrop-blur-md space-y-3.5">
+      <div className="p-4 rounded-2xl bg-[#0a0d17] border border-[#171e30] space-y-3.5 shadow-xl shadow-black/20">
         
-        {/* Top Row: Search input, Pinned toggle, Sort */}
+        {/* Top Row: Search input, Pinned toggle, Sort, View mode */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           
-          {/* Search bar */}
+          {/* Search Bar */}
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by project name, recipient, client, live URL, GitHub repo..."
-              className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-amber-500/80 focus:ring-1 focus:ring-amber-500/80 transition-all"
+              className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-[#0f1422] border border-[#1d253b] text-xs sm:text-sm text-zinc-100 placeholder-zinc-400 focus:outline-none focus:border-purple-500/80 focus:ring-1 focus:ring-purple-500/60 transition-all"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200"
               >
                 <X className="w-4 h-4" />
               </button>
             )}
           </div>
 
-          {/* Controls: Pinned toggle, Sort selector */}
+          {/* Controls: Pinned toggle, Sort, View Switcher */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPinnedOnly(!pinnedOnly)}
               className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                 pinnedOnly
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                  : 'bg-zinc-950/60 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                  ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
+                  : 'bg-[#0f1422] text-zinc-400 border-[#1d253b] hover:border-zinc-700'
               }`}
             >
               <Star className={`w-3.5 h-3.5 ${pinnedOnly ? 'fill-amber-400 text-amber-400' : ''}`} />
               <span>Favorites</span>
             </button>
 
-            <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-950/60 border border-zinc-800">
+            <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#0f1422] border border-[#1d253b]">
               <ArrowUpDown className="w-3.5 h-3.5 text-zinc-400" />
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
                 className="bg-transparent text-xs text-zinc-200 focus:outline-none cursor-pointer"
               >
-                <option value="newest" className="bg-zinc-900">Newest Created</option>
-                <option value="recently_updated" className="bg-zinc-900">Recently Updated</option>
-                <option value="name" className="bg-zinc-900">Name (A-Z)</option>
-                <option value="oldest" className="bg-zinc-900">Oldest</option>
+                <option value="newest" className="bg-[#0f1422]">Sort: Newest</option>
+                <option value="recently_updated" className="bg-[#0f1422]">Recently Updated</option>
+                <option value="name" className="bg-[#0f1422]">Name (A-Z)</option>
+                <option value="oldest" className="bg-[#0f1422]">Oldest</option>
               </select>
+            </div>
+
+            {/* View Mode Toggle */}
+            <div className="hidden sm:flex items-center p-0.5 rounded-xl bg-[#0f1422] border border-[#1d253b]">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  viewMode === 'grid'
+                    ? 'bg-purple-600/30 text-purple-300'
+                    : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+                title="Grid View"
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  viewMode === 'list'
+                    ? 'bg-purple-600/30 text-purple-300'
+                    : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+                title="List View"
+              >
+                <List className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Bottom Row: Filter dropdowns */}
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-zinc-800/60 text-xs">
+        {/* Bottom Row: Filter Dropdowns */}
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#141a2b] text-xs">
           
           <div className="flex items-center gap-1.5 text-zinc-400 font-medium mr-1">
             <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -210,43 +226,40 @@ export const ProjectList: React.FC<ProjectListProps> = ({
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-300 focus:outline-none focus:border-zinc-700 cursor-pointer"
+            className="px-3 py-1.5 rounded-lg bg-[#0f1422] border border-[#1d253b] text-zinc-300 focus:outline-none focus:border-purple-500/50 cursor-pointer"
           >
-            <option value="all">Status: All</option>
+            <option value="all">All Status</option>
             <option value="live">Live Websites</option>
-            <option value="ready">Ready for Preview</option>
-            <option value="in_progress">In Production</option>
+            <option value="ready">Ready / Delivered</option>
+            <option value="in_progress">In Progress</option>
             <option value="draft">Drafts</option>
-            <option value="archived">Archived</option>
           </select>
 
           {/* Platform Filter */}
           <select
             value={platformFilter}
             onChange={(e) => setPlatformFilter(e.target.value as any)}
-            className="px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-300 focus:outline-none focus:border-zinc-700 cursor-pointer"
+            className="px-3 py-1.5 rounded-lg bg-[#0f1422] border border-[#1d253b] text-zinc-300 focus:outline-none focus:border-purple-500/50 cursor-pointer"
           >
-            <option value="all">Platform: All</option>
+            <option value="all">All Platforms</option>
             <option value="cloudflare">Cloudflare Pages</option>
             <option value="netlify">Netlify</option>
             <option value="vercel">Vercel</option>
             <option value="github_pages">GitHub Pages</option>
-            <option value="other">Other / Custom</option>
           </select>
 
           {/* Social Platform Filter */}
           <select
             value={socialPlatformFilter}
             onChange={(e) => setSocialPlatformFilter(e.target.value as any)}
-            className="px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-300 focus:outline-none focus:border-zinc-700 cursor-pointer"
+            className="px-3 py-1.5 rounded-lg bg-[#0f1422] border border-[#1d253b] text-zinc-300 focus:outline-none focus:border-purple-500/50 cursor-pointer"
           >
-            <option value="all">Social Showcase: All</option>
-            <option value="tiktok">TikTok Video</option>
-            <option value="instagram">Instagram Reel</option>
-            <option value="youtube">YouTube / Shorts</option>
+            <option value="all">All Socials</option>
+            <option value="tiktok">TikTok</option>
+            <option value="instagram">Instagram</option>
+            <option value="youtube">YouTube</option>
             <option value="facebook">Facebook</option>
             <option value="pinterest">Pinterest</option>
-            <option value="x">X</option>
           </select>
 
           {/* Theme Filter */}
@@ -254,9 +267,9 @@ export const ProjectList: React.FC<ProjectListProps> = ({
             <select
               value={themeFilter}
               onChange={(e) => setThemeFilter(e.target.value)}
-              className="px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-300 focus:outline-none focus:border-zinc-700 cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-[#0f1422] border border-[#1d253b] text-zinc-300 focus:outline-none focus:border-purple-500/50 cursor-pointer"
             >
-              <option value="all">Theme: All</option>
+              <option value="all">All Themes</option>
               {uniqueThemes.map((th) => (
                 <option key={th} value={th}>
                   {th}
@@ -280,9 +293,13 @@ export const ProjectList: React.FC<ProjectListProps> = ({
 
       </div>
 
-      {/* Grid of Project Cards */}
+      {/* Grid or List of Project Cards */}
       {sortedProjects.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+        <div className={
+          viewMode === 'grid'
+            ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+            : "grid grid-cols-1 gap-4"
+        }>
           {sortedProjects.map((project) => (
             <ProjectCard
               key={project.id}
@@ -298,32 +315,32 @@ export const ProjectList: React.FC<ProjectListProps> = ({
         </div>
       ) : (
         /* Empty State */
-        <div className="py-16 px-4 rounded-3xl bg-zinc-900/40 border border-dashed border-zinc-800 text-center flex flex-col items-center justify-center max-w-lg mx-auto">
-          <div className="w-14 h-14 rounded-2xl bg-zinc-800/80 flex items-center justify-center text-zinc-500 mb-4">
-            <FolderHeart className="w-7 h-7 text-rose-400/60" />
+        <div className="py-20 px-6 rounded-3xl bg-[#090d16] border border-dashed border-[#1e263d] text-center flex flex-col items-center justify-center max-w-lg mx-auto">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-purple-900/30 to-pink-900/30 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-4 shadow-xl shadow-purple-950/20">
+            <FolderHeart className="w-8 h-8 text-rose-400" />
           </div>
-          <h3 className="text-lg font-bold text-zinc-200 font-['Outfit'] mb-1">
-            {hasActiveFilters ? 'No Matching Birthday Websites' : 'No Projects Found'}
+          <h3 className="text-xl font-bold text-white font-['Outfit'] mb-2">
+            {hasActiveFilters ? 'No Matching Birthday Websites' : 'No Birthday Websites Created Yet'}
           </h3>
-          <p className="text-xs text-zinc-400 mb-6 max-w-xs">
+          <p className="text-xs text-zinc-400 mb-6 max-w-sm leading-relaxed">
             {hasActiveFilters
-              ? 'Try changing your search keywords or clearing active filters to see all birthday websites.'
-              : 'Create your first birthday website project to manage code, deployments, and social showcase reels.'}
+              ? 'Try changing your search terms or clearing active filters to view your projects.'
+              : 'Start your creative journey! Create a website for a client or loved one, customize it in the builder, and track showcase videos.'}
           </p>
           {hasActiveFilters ? (
             <button
               onClick={resetFilters}
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-800 text-zinc-200 hover:bg-zinc-700 transition-colors"
+              className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#13192a] text-zinc-200 hover:bg-[#1a233b] border border-[#212b45] transition-colors cursor-pointer"
             >
               Clear All Filters
             </button>
           ) : (
             <button
               onClick={onNewProject}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-zinc-950 bg-gradient-to-r from-amber-400 to-rose-400 hover:from-amber-300 hover:to-rose-300 shadow-md shadow-rose-950/30 transition-all cursor-pointer"
+              className="flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:brightness-110 shadow-lg shadow-purple-900/40 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Create First Website</span>
+              <span>+ Create First Project</span>
             </button>
           )}
         </div>

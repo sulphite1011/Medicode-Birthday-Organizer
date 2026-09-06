@@ -2,7 +2,7 @@ export type ProjectStatus = 'draft' | 'in_progress' | 'ready' | 'live' | 'archiv
 
 export type DeploymentPlatform = 'cloudflare' | 'netlify' | 'vercel' | 'github_pages' | 'other';
 
-export type NavigationTab = 'projects' | 'requests' | 'builder' | 'deployments';
+export type NavigationTab = 'projects' | 'requests' | 'builder' | 'deployments' | 'backup';
 
 export type SocialPlatform =
   | 'tiktok'
@@ -102,6 +102,7 @@ export interface Project {
   clientContact?: string;
   status: ProjectStatus;
   theme: string;
+  coverImageUrl?: string;
   githubRepoUrl?: string;
   liveWebsiteUrl?: string;
   deploymentPlatform: DeploymentPlatform;
@@ -149,5 +150,5 @@ export interface AppSettings {
   updatedAt: string;
 }
 
-export type SyncState = 'connected' | 'syncing' | 'offline' | 'error';
+export type SyncState = 'connected' | 'syncing' | 'offline' | 'error' | 'synced' | 'local_only';
 

@@ -19,8 +19,15 @@ const STORAGE_KEYS = {
   REQUESTS: 'wishcraft_studio_requests_v2',
   SETTINGS: 'wishcraft_studio_settings_v2',
   MIGRATION_FLAG: 'wishcraft_migration_completed_v2',
+  DB_INITIALIZED: 'wishcraft_studio_initialized_v2',
+  DELETED_PROJECTS: 'wishcraft_deleted_project_ids_v2',
+  DELETED_REQUESTS: 'wishcraft_deleted_request_ids_v2',
   LEGACY_KEYS: ['wishcraft_projects', 'birthday_projects', 'birthdayWebsites', 'projects']
 };
+
+// In-memory sets to prevent race conditions during real-time updates
+const recentlyDeletedProjectIds = new Set<string>();
+const recentlyDeletedRequestIds = new Set<string>();
 
 interface FirebaseConfig {
   apiKey?: string;
@@ -71,18 +78,25 @@ export function getLocalProjects(): Project[] {
         return parsed.map((p, idx) => normalizeProject(p, `local-${idx}`));
       }
     }
+    // Check if the user had previously initialized or cleared their projects
+    const hasEverInitialized = localStorage.getItem(STORAGE_KEYS.DB_INITIALIZED) === 'true';
+    if (hasEverInitialized) {
+      return [];
+    }
     // Check legacy migration
     const legacy = checkLegacyLocalStorage();
     if (legacy.projects && legacy.projects.length > 0) {
       saveLocalProjects(legacy.projects);
+      localStorage.setItem(STORAGE_KEYS.DB_INITIALIZED, 'true');
       return legacy.projects;
     }
-    // Save sample default
+    // Save sample default on very first install
     saveLocalProjects(sampleProjects);
+    localStorage.setItem(STORAGE_KEYS.DB_INITIALIZED, 'true');
     return sampleProjects;
   } catch (err) {
     console.error('Failed reading local projects:', err);
-    return sampleProjects;
+    return [];
   }
 }
 
@@ -101,11 +115,16 @@ export function getLocalRequests(): ClientRequest[] {
       const parsed = JSON.parse(data);
       if (Array.isArray(parsed)) return parsed;
     }
+    const hasEverInitialized = localStorage.getItem(STORAGE_KEYS.DB_INITIALIZED) === 'true';
+    if (hasEverInitialized) {
+      return [];
+    }
     saveLocalRequests(sampleClientRequests);
+    localStorage.setItem(STORAGE_KEYS.DB_INITIALIZED, 'true');
     return sampleClientRequests;
   } catch (err) {
     console.error('Failed reading local requests:', err);
-    return sampleClientRequests;
+    return [];
   }
 }
 
@@ -169,6 +188,7 @@ export function normalizeProject(raw: any, fallbackId?: string): Project {
     clientContact: raw.clientContact || undefined,
     status: raw.status || 'live',
     theme: raw.theme || raw.themeId || 'Romantic Rose & Gold',
+    coverImageUrl: raw.coverImageUrl || raw.coverImage || raw.thumbnail || undefined,
     githubRepoUrl: raw.githubRepoUrl || raw.githubUrl || raw.repoUrl || undefined,
     liveWebsiteUrl: raw.liveWebsiteUrl || raw.liveUrl || raw.url || undefined,
     deploymentPlatform: raw.deploymentPlatform || raw.deployPlatform || raw.platform || 'cloudflare',
@@ -261,20 +281,33 @@ export function subscribeToProjects(
       q,
       (snapshot) => {
         if (snapshot.empty) {
-          // If Firestore is completely empty on first run, seed with local projects
-          seedFirestoreIfEmpty(localProjects);
-          onUpdate(localProjects);
+          const wasInitialized = localStorage.getItem(STORAGE_KEYS.DB_INITIALIZED) === 'true';
+          if (!wasInitialized) {
+            // First time ever with connected DB
+            localStorage.setItem(STORAGE_KEYS.DB_INITIALIZED, 'true');
+            seedFirestoreIfEmpty(sampleProjects);
+            saveLocalProjects(sampleProjects);
+            onUpdate(sampleProjects);
+          } else {
+            // All projects were deleted by the user! Respect the deletion and keep empty!
+            saveLocalProjects([]);
+            onUpdate([]);
+          }
         } else {
           const remoteItems: Project[] = [];
           snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            remoteItems.push(normalizeProject(data, docSnap.id));
+            // Skip any project that was deleted locally in this session
+            if (!recentlyDeletedProjectIds.has(docSnap.id)) {
+              const data = docSnap.data();
+              remoteItems.push(normalizeProject(data, docSnap.id));
+            }
           });
 
           // Retain any locally-created or updated project that hasn't made it to the remote snapshot yet
-          // to prevent race conditions from erasing recently added projects
+          // (except for projects that were intentionally deleted)
           const currentLocal = getLocalProjects();
           const pendingLocal = currentLocal.filter((lp) => {
+            if (recentlyDeletedProjectIds.has(lp.id)) return false;
             const inRemote = remoteItems.some((rp) => rp.id === lp.id);
             if (inRemote) return false;
             const ageMs = Date.now() - new Date(lp.updatedAt || 0).getTime();
@@ -322,15 +355,28 @@ export function subscribeToRequests(
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        if (!snapshot.empty) {
+        if (snapshot.empty) {
+          const wasInitialized = localStorage.getItem(STORAGE_KEYS.DB_INITIALIZED) === 'true';
+          if (!wasInitialized) {
+            localStorage.setItem(STORAGE_KEYS.DB_INITIALIZED, 'true');
+            saveLocalRequests(sampleClientRequests);
+            onUpdate(sampleClientRequests);
+          } else {
+            saveLocalRequests([]);
+            onUpdate([]);
+          }
+        } else {
           const remoteItems: ClientRequest[] = [];
           snapshot.forEach((docSnap) => {
-            const data = docSnap.data() as ClientRequest;
-            remoteItems.push({ ...data, id: docSnap.id });
+            if (!recentlyDeletedRequestIds.has(docSnap.id)) {
+              const data = docSnap.data() as ClientRequest;
+              remoteItems.push({ ...data, id: docSnap.id });
+            }
           });
 
           const currentLocal = getLocalRequests();
           const pendingLocal = currentLocal.filter((lr) => {
+            if (recentlyDeletedRequestIds.has(lr.id)) return false;
             const inRemote = remoteItems.some((rr) => rr.id === lr.id);
             if (inRemote) return false;
             const ageMs = Date.now() - new Date(lr.updatedAt || 0).getTime();
@@ -374,6 +420,10 @@ export async function saveProject(project: Project): Promise<void> {
     updatedAt: new Date().toISOString(),
   };
 
+  // If this project was previously in recentlyDeleted, un-delete it
+  recentlyDeletedProjectIds.delete(updatedProject.id);
+  localStorage.setItem(STORAGE_KEYS.DB_INITIALIZED, 'true');
+
   // 1. Update locally first
   const current = getLocalProjects();
   const index = current.findIndex((p) => p.id === updatedProject.id);
@@ -400,6 +450,8 @@ export async function saveProject(project: Project): Promise<void> {
 
 // Delete a Project
 export async function deleteProject(projectId: string): Promise<void> {
+  recentlyDeletedProjectIds.add(projectId);
+  localStorage.setItem(STORAGE_KEYS.DB_INITIALIZED, 'true');
   const current = getLocalProjects();
   const filtered = current.filter((p) => p.id !== projectId);
   saveLocalProjects(filtered);
@@ -420,6 +472,9 @@ export async function saveClientRequest(request: ClientRequest): Promise<void> {
     ...request,
     updatedAt: new Date().toISOString(),
   };
+
+  recentlyDeletedRequestIds.delete(updatedReq.id);
+  localStorage.setItem(STORAGE_KEYS.DB_INITIALIZED, 'true');
 
   const current = getLocalRequests();
   const index = current.findIndex((r) => r.id === updatedReq.id);
@@ -444,7 +499,9 @@ export async function saveClientRequest(request: ClientRequest): Promise<void> {
 }
 
 // Delete Client Request
-export async function deleteClientRequest(requestId: string): Promise<void> {
+export async function deleteRequest(requestId: string): Promise<void> {
+  recentlyDeletedRequestIds.add(requestId);
+  localStorage.setItem(STORAGE_KEYS.DB_INITIALIZED, 'true');
   const current = getLocalRequests();
   const filtered = current.filter((r) => r.id !== requestId);
   saveLocalRequests(filtered);
@@ -458,6 +515,8 @@ export async function deleteClientRequest(requestId: string): Promise<void> {
     }
   }
 }
+
+export const deleteClientRequest = deleteRequest;
 
 // Test Connection Diagnostic
 export async function testFirestoreConnection(): Promise<{ success: boolean; message: string }> {

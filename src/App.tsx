@@ -94,12 +94,17 @@ export default function App() {
     }
 
     // 3. Connect real-time synchronization with Firebase/Local storage
-    const unsubProjects = syncService.listenProjects((remoteProjects) => {
-      setProjects(remoteProjects);
-      if (!builderSelectedProject && remoteProjects.length > 0) {
-        setBuilderSelectedProject(remoteProjects[0]);
+    const unsubProjects = syncService.listenProjects(
+      (remoteProjects) => {
+        setProjects(remoteProjects);
+        if (!builderSelectedProject && remoteProjects.length > 0) {
+          setBuilderSelectedProject(remoteProjects[0]);
+        }
+      },
+      (status) => {
+        setFirebaseStatus(status);
       }
-    });
+    );
 
     const unsubRequests = syncService.listenRequests((remoteRequests) => {
       setRequests(remoteRequests);
@@ -130,8 +135,24 @@ export default function App() {
 
   // Project CRUD Handlers
   const handleSaveProject = async (project: Project) => {
-    await syncService.saveProject(project);
-    showToast(`Website "${project.name}" saved!`);
+    // 1. Optimistic UI update so the user sees the project IMMEDIATELY
+    setProjects((prev) => {
+      const idx = prev.findIndex((p) => p.id === project.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = project;
+        return next;
+      }
+      return [project, ...prev];
+    });
+
+    try {
+      await syncService.saveProject(project);
+      showToast(`Website "${project.name}" saved!`);
+    } catch (err: any) {
+      console.error('Save project error:', err);
+      showToast(`Saved locally (${err?.message || 'cloud sync failed'})`);
+    }
   };
 
   const handleDeleteProject = (projectId: string) => {
@@ -147,12 +168,23 @@ export default function App() {
   };
 
   const handleConfirmDelete = async () => {
+    const targetId = deleteConfirm.id;
     if (deleteConfirm.type === 'project') {
-      await syncService.deleteProject(deleteConfirm.id);
-      showToast('Website project deleted.');
+      setProjects((prev) => prev.filter((p) => p.id !== targetId));
+      try {
+        await syncService.deleteProject(targetId);
+        showToast('Website project deleted.');
+      } catch (err: any) {
+        console.error('Delete project error:', err);
+      }
     } else {
-      await syncService.deleteRequest(deleteConfirm.id);
-      showToast('Client order deleted.');
+      setRequests((prev) => prev.filter((r) => r.id !== targetId));
+      try {
+        await syncService.deleteRequest(targetId);
+        showToast('Client order deleted.');
+      } catch (err: any) {
+        console.error('Delete request error:', err);
+      }
     }
     setDeleteConfirm((prev) => ({ ...prev, isOpen: false }));
   };
@@ -170,8 +202,13 @@ export default function App() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    await syncService.saveProject(duplicated);
-    showToast(`Duplicated into "${duplicated.name}"!`);
+    setProjects((prev) => [duplicated, ...prev]);
+    try {
+      await syncService.saveProject(duplicated);
+      showToast(`Duplicated into "${duplicated.name}"!`);
+    } catch (err) {
+      console.error('Duplicate project error:', err);
+    }
   };
 
   const handleTogglePin = async (project: Project) => {
@@ -180,6 +217,7 @@ export default function App() {
       isPinned: !project.isPinned,
       updatedAt: new Date().toISOString(),
     };
+    setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
     await syncService.saveProject(updated);
   };
 
@@ -190,8 +228,21 @@ export default function App() {
 
   // Client Request Handlers
   const handleSaveRequest = async (req: ClientRequest) => {
-    await syncService.saveRequest(req);
-    showToast(`Order for ${req.recipientName} updated!`);
+    setRequests((prev) => {
+      const idx = prev.findIndex((r) => r.id === req.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = req;
+        return next;
+      }
+      return [req, ...prev];
+    });
+    try {
+      await syncService.saveRequest(req);
+      showToast(`Order for ${req.recipientName} updated!`);
+    } catch (err) {
+      console.error('Save request error:', err);
+    }
   };
 
   const handleDeleteRequest = (requestId: string) => {
@@ -213,6 +264,7 @@ export default function App() {
         status: newStatus,
         updatedAt: new Date().toISOString(),
       };
+      setRequests((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
       await syncService.saveRequest(updated);
     }
   };

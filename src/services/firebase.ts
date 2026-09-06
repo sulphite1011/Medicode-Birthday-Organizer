@@ -12,7 +12,7 @@ import {
   orderBy,
 } from 'firebase/firestore';
 import { Project, ClientRequest, AppSettings, SyncState } from '../types';
-import { sampleProjects, sampleClientRequests, defaultAppSettings } from '../data/initialData';
+import { sampleProjects, sampleClientRequests, defaultAppSettings, defaultBirthdaySiteData } from '../data/initialData';
 
 const STORAGE_KEYS = {
   PROJECTS: 'wishcraft_studio_projects_v2',
@@ -65,9 +65,11 @@ export { app, db };
 export function getLocalProjects(): Project[] {
   try {
     const data = localStorage.getItem(STORAGE_KEYS.PROJECTS);
-    if (data) {
+    if (data !== null) {
       const parsed = JSON.parse(data);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) {
+        return parsed.map((p, idx) => normalizeProject(p, `local-${idx}`));
+      }
     }
     // Check legacy migration
     const legacy = checkLegacyLocalStorage();
@@ -95,9 +97,9 @@ export function saveLocalProjects(projects: Project[]): void {
 export function getLocalRequests(): ClientRequest[] {
   try {
     const data = localStorage.getItem(STORAGE_KEYS.REQUESTS);
-    if (data) {
+    if (data !== null) {
       const parsed = JSON.parse(data);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
     saveLocalRequests(sampleClientRequests);
     return sampleClientRequests;
@@ -131,6 +133,59 @@ export function saveLocalSettings(settings: AppSettings): void {
   } catch (err) {
     console.error('Failed saving local settings:', err);
   }
+}
+
+/**
+ * Strips undefined properties recursively so Firestore never throws
+ * "Unsupported field value: undefined".
+ */
+export function sanitizeForFirestore<T>(data: T): any {
+  if (data === null || data === undefined) return null;
+  return JSON.parse(JSON.stringify(data));
+}
+
+/**
+ * Normalizes any project data structure into the standard Project interface,
+ * handling legacy or partial schemas seamlessly.
+ */
+export function normalizeProject(raw: any, fallbackId?: string): Project {
+  const id = raw.id || fallbackId || `proj-${Date.now()}`;
+  const recipient =
+    raw.recipientName ||
+    raw.recipient ||
+    raw.config?.recipientName ||
+    raw.config?.letterRecipient ||
+    'Celebrant';
+  const name =
+    raw.name ||
+    raw.title ||
+    (recipient && recipient !== 'Celebrant' ? `Birthday Website — ${recipient}` : 'Birthday Celebration');
+
+  return {
+    id,
+    name,
+    recipientName: recipient,
+    clientName: raw.clientName || raw.client || undefined,
+    clientContact: raw.clientContact || undefined,
+    status: raw.status || 'live',
+    theme: raw.theme || raw.themeId || 'Romantic Rose & Gold',
+    githubRepoUrl: raw.githubRepoUrl || raw.githubUrl || raw.repoUrl || undefined,
+    liveWebsiteUrl: raw.liveWebsiteUrl || raw.liveUrl || raw.url || undefined,
+    deploymentPlatform: raw.deploymentPlatform || raw.deployPlatform || raw.platform || 'cloudflare',
+    deploymentNotes: raw.deploymentNotes || '',
+    lastDeployedAt: raw.lastDeployedAt || raw.updatedAt,
+    notes: raw.notes || raw.description || undefined,
+    isPinned: Boolean(raw.isPinned || raw.pinned),
+    socialLinks: Array.isArray(raw.socialLinks)
+      ? raw.socialLinks
+      : raw.socialUrl
+      ? [{ id: `soc-${Date.now()}`, platform: 'tiktok', url: raw.socialUrl, viewCount: raw.views || raw.videoViews || null }]
+      : [],
+    builderData: raw.builderData || sampleProjects[0]?.builderData || defaultBirthdaySiteData,
+    orderId: raw.orderId,
+    createdAt: raw.createdAt || raw.updatedAt || new Date().toISOString(),
+    updatedAt: raw.updatedAt || new Date().toISOString(),
+  };
 }
 
 // Detect Legacy LocalStorage from older versions of the app
@@ -210,13 +265,25 @@ export function subscribeToProjects(
           seedFirestoreIfEmpty(localProjects);
           onUpdate(localProjects);
         } else {
-          const items: Project[] = [];
+          const remoteItems: Project[] = [];
           snapshot.forEach((docSnap) => {
-            const data = docSnap.data() as Project;
-            items.push({ ...data, id: docSnap.id });
+            const data = docSnap.data();
+            remoteItems.push(normalizeProject(data, docSnap.id));
           });
-          saveLocalProjects(items);
-          onUpdate(items);
+
+          // Retain any locally-created or updated project that hasn't made it to the remote snapshot yet
+          // to prevent race conditions from erasing recently added projects
+          const currentLocal = getLocalProjects();
+          const pendingLocal = currentLocal.filter((lp) => {
+            const inRemote = remoteItems.some((rp) => rp.id === lp.id);
+            if (inRemote) return false;
+            const ageMs = Date.now() - new Date(lp.updatedAt || 0).getTime();
+            return ageMs < 60000;
+          });
+
+          const merged = [...pendingLocal, ...remoteItems];
+          saveLocalProjects(merged);
+          onUpdate(merged);
         }
         onStatusChange('connected', 'Cloud synced via Firestore');
       },
@@ -256,13 +323,23 @@ export function subscribeToRequests(
       q,
       (snapshot) => {
         if (!snapshot.empty) {
-          const items: ClientRequest[] = [];
+          const remoteItems: ClientRequest[] = [];
           snapshot.forEach((docSnap) => {
             const data = docSnap.data() as ClientRequest;
-            items.push({ ...data, id: docSnap.id });
+            remoteItems.push({ ...data, id: docSnap.id });
           });
-          saveLocalRequests(items);
-          onUpdate(items);
+
+          const currentLocal = getLocalRequests();
+          const pendingLocal = currentLocal.filter((lr) => {
+            const inRemote = remoteItems.some((rr) => rr.id === lr.id);
+            if (inRemote) return false;
+            const ageMs = Date.now() - new Date(lr.updatedAt || 0).getTime();
+            return ageMs < 60000;
+          });
+
+          const merged = [...pendingLocal, ...remoteItems];
+          saveLocalRequests(merged);
+          onUpdate(merged);
         }
       },
       (error) => {
@@ -282,7 +359,8 @@ async function seedFirestoreIfEmpty(projects: Project[]) {
   if (!db) return;
   try {
     for (const p of projects) {
-      await setDoc(doc(db, 'projects', p.id), p, { merge: true });
+      const sanitized = sanitizeForFirestore(p);
+      await setDoc(doc(db, 'projects', p.id), sanitized, { merge: true });
     }
   } catch (e) {
     console.warn('[Seeding Firestore]:', e);
@@ -291,14 +369,14 @@ async function seedFirestoreIfEmpty(projects: Project[]) {
 
 // Save or Update a Project
 export async function saveProject(project: Project): Promise<void> {
-  // Update locally first
-  const current = getLocalProjects();
-  const index = current.findIndex((p) => p.id === project.id);
-  const updatedProject = {
+  const updatedProject: Project = {
     ...project,
     updatedAt: new Date().toISOString(),
   };
 
+  // 1. Update locally first
+  const current = getLocalProjects();
+  const index = current.findIndex((p) => p.id === updatedProject.id);
   let updatedList: Project[];
   if (index >= 0) {
     updatedList = [...current];
@@ -308,10 +386,11 @@ export async function saveProject(project: Project): Promise<void> {
   }
   saveLocalProjects(updatedList);
 
-  // Sync to Firestore if available
+  // 2. Sync to Firestore if available with clean data (no undefined fields)
   if (db) {
     try {
-      await setDoc(doc(db, 'projects', updatedProject.id), updatedProject, { merge: true });
+      const sanitized = sanitizeForFirestore(updatedProject);
+      await setDoc(doc(db, 'projects', updatedProject.id), sanitized, { merge: true });
     } catch (error) {
       console.error('[Save Project Firestore Error]:', error);
       throw error;
@@ -337,13 +416,13 @@ export async function deleteProject(projectId: string): Promise<void> {
 
 // Save or Update Client Request
 export async function saveClientRequest(request: ClientRequest): Promise<void> {
-  const current = getLocalRequests();
-  const index = current.findIndex((r) => r.id === request.id);
-  const updatedReq = {
+  const updatedReq: ClientRequest = {
     ...request,
     updatedAt: new Date().toISOString(),
   };
 
+  const current = getLocalRequests();
+  const index = current.findIndex((r) => r.id === updatedReq.id);
   let updatedList: ClientRequest[];
   if (index >= 0) {
     updatedList = [...current];
@@ -355,7 +434,8 @@ export async function saveClientRequest(request: ClientRequest): Promise<void> {
 
   if (db) {
     try {
-      await setDoc(doc(db, 'client_requests', updatedReq.id), updatedReq, { merge: true });
+      const sanitized = sanitizeForFirestore(updatedReq);
+      await setDoc(doc(db, 'client_requests', updatedReq.id), sanitized, { merge: true });
     } catch (error) {
       console.error('[Save Request Firestore Error]:', error);
       throw error;
@@ -458,11 +538,27 @@ export function initializeLocalDataIfEmpty(): void {
 }
 
 export const syncService = {
-  listenProjects: (onUpdate: (projects: Project[]) => void) => {
-    return subscribeToProjects(onUpdate, () => {});
+  listenProjects: (
+    onUpdate: (projects: Project[]) => void,
+    onStatusChange?: (status: 'connected' | 'offline_local' | 'syncing') => void
+  ) => {
+    return subscribeToProjects(onUpdate, (status) => {
+      if (onStatusChange) {
+        const mapped = status === 'connected' ? 'connected' : status === 'syncing' ? 'syncing' : 'offline_local';
+        onStatusChange(mapped);
+      }
+    });
   },
-  listenRequests: (onUpdate: (requests: ClientRequest[]) => void) => {
-    return subscribeToRequests(onUpdate, () => {});
+  listenRequests: (
+    onUpdate: (requests: ClientRequest[]) => void,
+    onStatusChange?: (status: 'connected' | 'offline_local' | 'syncing') => void
+  ) => {
+    return subscribeToRequests(onUpdate, (status) => {
+      if (onStatusChange) {
+        const mapped = status === 'connected' ? 'connected' : status === 'syncing' ? 'syncing' : 'offline_local';
+        onStatusChange(mapped);
+      }
+    });
   },
   listenSettings: (onUpdate: (settings: AppSettings) => void) => {
     onUpdate(getLocalSettings());
@@ -504,11 +600,13 @@ export async function restoreBackupData(
     // Sync to Firestore if online
     if (db) {
       for (const p of data.projects) {
-        await setDoc(doc(db, 'projects', p.id), p, { merge: true });
+        const sanitized = sanitizeForFirestore(p);
+        await setDoc(doc(db, 'projects', p.id), sanitized, { merge: true });
       }
       if (Array.isArray(data.clientRequests)) {
         for (const r of data.clientRequests) {
-          await setDoc(doc(db, 'client_requests', r.id), r, { merge: true });
+          const sanitized = sanitizeForFirestore(r);
+          await setDoc(doc(db, 'client_requests', r.id), sanitized, { merge: true });
         }
       }
     }

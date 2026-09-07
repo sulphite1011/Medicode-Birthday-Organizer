@@ -2,13 +2,10 @@ import React from 'react';
 import {
   LayoutDashboard,
   FolderHeart,
-  Inbox,
-  CodeXml,
   Rocket,
   Database,
   Settings,
   Plus,
-  MessageSquarePlus,
   Crown,
   Sparkles,
   X
@@ -19,10 +16,7 @@ interface SidebarProps {
   activeTab: NavigationTab;
   setActiveTab: (tab: NavigationTab) => void;
   projectCount: number;
-  pendingRequestsCount: number;
   onNewProject: () => void;
-  onNewRequest: () => void;
-  onOpenBuilder: () => void;
   onOpenSettings: () => void;
   isOpenMobile: boolean;
   onCloseMobile: () => void;
@@ -32,56 +26,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   setActiveTab,
   projectCount,
-  pendingRequestsCount,
   onNewProject,
-  onNewRequest,
-  onOpenBuilder,
   onOpenSettings,
   isOpenMobile,
   onCloseMobile,
 }) => {
-  const navItems = [
-    {
-      id: 'projects' as NavigationTab,
-      label: 'Dashboard',
-      icon: LayoutDashboard,
-      badge: null,
-    },
-    {
-      id: 'projects' as NavigationTab,
-      label: 'Projects',
-      icon: FolderHeart,
-      badge: projectCount,
-    },
-    {
-      id: 'requests' as NavigationTab,
-      label: 'Client Requests',
-      icon: Inbox,
-      badge: pendingRequestsCount > 0 ? pendingRequestsCount : null,
-    },
-    {
-      id: 'builder' as NavigationTab,
-      label: 'Website Builder',
-      icon: CodeXml,
-      badge: null,
-    },
-    {
-      id: 'deployments' as NavigationTab,
-      label: 'Deployments',
-      icon: Rocket,
-      badge: null,
-    },
-    {
-      id: 'backup' as NavigationTab,
-      label: 'Cloud & Backup',
-      icon: Database,
-      badge: null,
-    },
-  ];
-
   const handleNavClick = (tab: NavigationTab) => {
     setActiveTab(tab);
     onCloseMobile();
+    if (tab === 'projects') {
+      setTimeout(() => {
+        const el = document.getElementById('projects-section');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    } else if (tab === 'dashboard') {
+      setTimeout(() => {
+        const el = document.getElementById('dashboard-top');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    }
   };
 
   return (
@@ -105,7 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex items-center justify-between px-6 py-5 border-b border-[#141a2b]">
             <div
               className="flex items-center gap-3 cursor-pointer group"
-              onClick={() => handleNavClick('projects')}
+              onClick={() => handleNavClick('dashboard')}
             >
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 p-[1.5px] shadow-lg shadow-purple-950/40">
                 <div className="w-full h-full bg-[#0d121f] rounded-[10px] flex items-center justify-center">
@@ -125,81 +88,55 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {/* Mobile Close Button */}
             <button
               onClick={onCloseMobile}
-              className="lg:hidden p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+              className="lg:hidden p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Navigation Links */}
-          <div className="px-4 py-5 space-y-1">
+          <div className="px-4 py-5 space-y-1.5">
+            {/* Dashboard Button */}
             <button
-              onClick={() => handleNavClick('projects')}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                activeTab === 'projects'
+              onClick={() => handleNavClick('dashboard')}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'dashboard'
                   ? 'bg-gradient-to-r from-purple-900/40 to-indigo-900/30 text-white border border-purple-500/30 shadow-md shadow-purple-950/20'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#111626]'
               }`}
             >
               <div className="flex items-center gap-3">
-                <LayoutDashboard className={`w-4 h-4 ${activeTab === 'projects' ? 'text-purple-400' : 'text-zinc-400'}`} />
+                <LayoutDashboard className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-purple-400' : 'text-zinc-400'}`} />
                 <span>Dashboard</span>
               </div>
             </button>
 
+            {/* Projects Button */}
             <button
               onClick={() => handleNavClick('projects')}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'projects'
-                  ? 'text-zinc-200 hover:bg-[#111626]'
+                  ? 'bg-gradient-to-r from-purple-900/40 to-indigo-900/30 text-white border border-purple-500/30 shadow-md shadow-purple-950/20'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#111626]'
               }`}
             >
               <div className="flex items-center gap-3">
-                <FolderHeart className="w-4 h-4 text-rose-400" />
+                <FolderHeart className={`w-4 h-4 ${activeTab === 'projects' ? 'text-rose-400' : 'text-zinc-400'}`} />
                 <span>Projects</span>
               </div>
-              <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-[#1b233a] text-purple-300 border border-purple-800/40">
+              <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border transition-colors ${
+                activeTab === 'projects'
+                  ? 'bg-purple-500/30 text-purple-200 border-purple-500/50'
+                  : 'bg-[#1b233a] text-purple-300 border-purple-800/40'
+              }`}>
                 {projectCount}
               </span>
             </button>
 
-            <button
-              onClick={() => handleNavClick('requests')}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                activeTab === 'requests'
-                  ? 'bg-gradient-to-r from-purple-900/40 to-indigo-900/30 text-white border border-purple-500/30 shadow-md shadow-purple-950/20'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#111626]'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Inbox className={`w-4 h-4 ${activeTab === 'requests' ? 'text-amber-400' : 'text-zinc-400'}`} />
-                <span>Client Requests</span>
-              </div>
-              {pendingRequestsCount > 0 && (
-                <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  {pendingRequestsCount}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => handleNavClick('builder')}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                activeTab === 'builder'
-                  ? 'bg-gradient-to-r from-purple-900/40 to-indigo-900/30 text-white border border-purple-500/30 shadow-md shadow-purple-950/20'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#111626]'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <CodeXml className={`w-4 h-4 ${activeTab === 'builder' ? 'text-violet-400' : 'text-zinc-400'}`} />
-                <span>Website Builder</span>
-              </div>
-            </button>
-
+            {/* Deployments Button */}
             <button
               onClick={() => handleNavClick('deployments')}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'deployments'
                   ? 'bg-gradient-to-r from-purple-900/40 to-indigo-900/30 text-white border border-purple-500/30 shadow-md shadow-purple-950/20'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#111626]'
@@ -211,9 +148,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </button>
 
+            {/* Cloud & Backup Button */}
             <button
               onClick={() => handleNavClick('backup')}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'backup'
                   ? 'bg-gradient-to-r from-purple-900/40 to-indigo-900/30 text-white border border-purple-500/30 shadow-md shadow-purple-950/20'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#111626]'
@@ -225,9 +163,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </button>
 
+            {/* Settings Button */}
             <button
               onClick={onOpenSettings}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-zinc-400 hover:text-zinc-200 hover:bg-[#111626] transition-all"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-zinc-400 hover:text-zinc-200 hover:bg-[#111626] transition-all cursor-pointer"
             >
               <div className="flex items-center gap-3">
                 <Settings className="w-4 h-4 text-zinc-400" />
@@ -252,25 +191,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
 
               <button
-                onClick={onNewRequest}
+                onClick={() => handleNavClick('projects')}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#111624] hover:bg-[#171e33] text-zinc-300 hover:text-white border border-[#1e263d] text-xs font-semibold transition-all cursor-pointer"
               >
-                <MessageSquarePlus className="w-3.5 h-3.5 text-amber-400" />
-                <span>New Request</span>
-              </button>
-
-              <button
-                onClick={onOpenBuilder}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#111624] hover:bg-[#171e33] text-zinc-300 hover:text-white border border-[#1e263d] text-xs font-semibold transition-all cursor-pointer"
-              >
-                <CodeXml className="w-3.5 h-3.5 text-violet-400" />
-                <span>Open Builder</span>
+                <FolderHeart className="w-3.5 h-3.5 text-rose-400" />
+                <span>View All Projects</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Bottom Card: Emotional Branding Prompt */}
+        {/* Bottom Card: Creator & Branding */}
         <div className="p-4 m-4 rounded-2xl bg-gradient-to-b from-[#14122e] to-[#0d1021] border border-purple-500/25 relative overflow-hidden shadow-xl shadow-purple-950/20">
           <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-pink-500/10 via-purple-500/10 to-transparent pointer-events-none rounded-bl-full" />
           <div className="relative z-10">

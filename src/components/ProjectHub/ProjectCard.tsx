@@ -24,7 +24,6 @@ interface ProjectCardProps {
   onDuplicate: (project: Project) => void;
   onTogglePin: (project: Project) => void;
   onManageSocials: (project: Project) => void;
-  onOpenBuilder: (project: Project) => void;
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({
@@ -34,23 +33,12 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   onDuplicate,
   onTogglePin,
   onManageSocials,
-  onOpenBuilder,
 }) => {
   const [showMenu, setShowMenu] = useState(false);
 
   const getCoverImage = (p: Project) => {
-    if (p.coverImageUrl) return p.coverImageUrl;
-    const t = (p.theme || '').toLowerCase();
-    if (t.includes('rose') || t.includes('quartz')) {
-      return 'https://images.unsplash.com/photo-1558636508-e0db3814bd1d?w=800&auto=format&fit=crop&q=80';
-    }
-    if (t.includes('celestial') || t.includes('midnight') || t.includes('star')) {
-      return 'https://images.unsplash.com/photo-1532767153582-b1a0e5145009?w=800&auto=format&fit=crop&q=80';
-    }
-    if (t.includes('amber') || t.includes('sunset') || t.includes('gold')) {
-      return 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800&auto=format&fit=crop&q=80';
-    }
-    return 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800&auto=format&fit=crop&q=80';
+    if (p.coverImageUrl && p.coverImageUrl.trim()) return p.coverImageUrl;
+    return 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800&auto=format&fit=crop&q=80';
   };
 
   const getThemeEmoji = (theme: string) => {
@@ -169,22 +157,12 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                   <button
                     onClick={() => {
                       setShowMenu(false);
-                      onOpenBuilder(project);
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#1b233d] transition-colors text-left text-violet-300"
-                  >
-                    <CodeXml className="w-3.5 h-3.5" />
-                    Open Website Builder
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowMenu(false);
                       onEdit(project);
                     }}
                     className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#1b233d] transition-colors text-left"
                   >
                     <Edit className="w-3.5 h-3.5 text-amber-400" />
-                    Edit Details
+                    Edit Details & Image
                   </button>
                   <button
                     onClick={() => {
@@ -227,12 +205,22 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
 
       {/* Cinematic Media / Video Preview Banner */}
       <div
-        onClick={() => onOpenBuilder(project)}
+        onClick={() => {
+          if (project.liveWebsiteUrl) {
+            window.open(project.liveWebsiteUrl, '_blank');
+          } else {
+            onEdit(project);
+          }
+        }}
         className="relative h-48 w-full overflow-hidden cursor-pointer group/thumb select-none"
+        title={project.liveWebsiteUrl ? 'Open live website' : 'Click to edit project and set preview image / links'}
       >
         <img
           src={getCoverImage(project)}
           alt={project.name}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800&auto=format&fit=crop&q=80';
+          }}
           className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-500"
         />
         
@@ -345,16 +333,17 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-600 hover:brightness-110 text-white text-xs font-bold shadow-md shadow-purple-900/30 transition-all cursor-pointer"
             >
-              <Play className="w-3.5 h-3.5 fill-white" />
+              <ExternalLink className="w-3.5 h-3.5" />
               <span>Live Site</span>
             </a>
           ) : (
             <button
-              onClick={() => onOpenBuilder(project)}
+              onClick={() => onEdit(project)}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-600 hover:brightness-110 text-white text-xs font-bold shadow-md shadow-purple-900/30 transition-all cursor-pointer"
+              title="Add live website link or custom preview image"
             >
-              <Play className="w-3.5 h-3.5 fill-white" />
-              <span>Open Site</span>
+              <Edit className="w-3.5 h-3.5" />
+              <span>Edit Details</span>
             </button>
           )}
 

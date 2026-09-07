@@ -139,7 +139,14 @@ export function saveLocalRequests(requests: ClientRequest[]): void {
 export function getLocalSettings(): AppSettings {
   try {
     const data = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    if (data) return JSON.parse(data);
+    if (data) {
+      const parsed = JSON.parse(data);
+      if (parsed && typeof parsed.creatorName === 'string' && parsed.creatorName.toLowerCase().includes('amara')) {
+        parsed.creatorName = 'Hamad';
+        saveLocalSettings(parsed);
+      }
+      return parsed;
+    }
   } catch (e) {
     // ignore
   }

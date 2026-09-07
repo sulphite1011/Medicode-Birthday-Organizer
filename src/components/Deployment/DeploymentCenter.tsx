@@ -21,7 +21,7 @@ import {
 interface DeploymentCenterProps {
   projects: Project[];
   onUpdateProject: (updatedProject: Project) => void;
-  onOpenProjectBuilder: (project: Project) => void;
+  onOpenProjectBuilder?: (project: Project) => void;
 }
 
 export const DeploymentCenter: React.FC<DeploymentCenterProps> = ({

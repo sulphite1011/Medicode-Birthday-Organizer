@@ -2,7 +2,7 @@ export type ProjectStatus = 'draft' | 'in_progress' | 'ready' | 'live' | 'archiv
 
 export type DeploymentPlatform = 'cloudflare' | 'netlify' | 'vercel' | 'github_pages' | 'other';
 
-export type NavigationTab = 'projects' | 'requests' | 'builder' | 'deployments' | 'backup';
+export type NavigationTab = 'dashboard' | 'projects' | 'deployments' | 'backup';
 
 export type SocialPlatform =
   | 'tiktok'

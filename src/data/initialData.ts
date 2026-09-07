@@ -383,7 +383,7 @@ export const sampleClientRequests: ClientRequest[] = [
 ];
 
 export const defaultAppSettings: AppSettings = {
-  creatorName: 'Amara (Creator)',
+  creatorName: 'Hamad',
   studioName: 'WishCraft Studio',
   defaultDeploymentPlatform: 'cloudflare',
   defaultTheme: 'Romantic Rose & Gold',

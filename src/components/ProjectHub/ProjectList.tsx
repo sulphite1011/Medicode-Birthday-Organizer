@@ -21,7 +21,6 @@ interface ProjectListProps {
   onDuplicateProject: (project: Project) => void;
   onTogglePin: (project: Project) => void;
   onManageSocials: (project: Project) => void;
-  onOpenBuilder: (project: Project) => void;
 }
 
 export const ProjectList: React.FC<ProjectListProps> = ({
@@ -32,7 +31,6 @@ export const ProjectList: React.FC<ProjectListProps> = ({
   onDuplicateProject,
   onTogglePin,
   onManageSocials,
-  onOpenBuilder,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
@@ -130,7 +128,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div id="projects-section" className="space-y-6">
       
       {/* Search & Control Toolbar */}
       <div className="p-4 rounded-2xl bg-[#0a0d17] border border-[#171e30] space-y-3.5 shadow-xl shadow-black/20">
@@ -309,7 +307,6 @@ export const ProjectList: React.FC<ProjectListProps> = ({
               onDuplicate={onDuplicateProject}
               onTogglePin={onTogglePin}
               onManageSocials={onManageSocials}
-              onOpenBuilder={onOpenBuilder}
             />
           ))}
         </div>
@@ -325,7 +322,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({
           <p className="text-xs text-zinc-400 mb-6 max-w-sm leading-relaxed">
             {hasActiveFilters
               ? 'Try changing your search terms or clearing active filters to view your projects.'
-              : 'Start your creative journey! Create a website for a client or loved one, customize it in the builder, and track showcase videos.'}
+              : 'Start your creative journey! Create a website for a client or loved one, customize its preview image, theme and links, and track showcase videos.'}
           </p>
           {hasActiveFilters ? (
             <button

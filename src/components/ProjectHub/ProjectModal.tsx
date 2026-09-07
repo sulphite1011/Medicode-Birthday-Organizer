@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Project, DeploymentPlatform, ProjectStatus, SocialLink } from '../../types';
 import { defaultBirthdaySiteData } from '../../data/initialData';
 import {
@@ -10,8 +10,23 @@ import {
   Plus,
   Trash2,
   Share2,
-  ExternalLink
+  ExternalLink,
+  Image as ImageIcon,
+  Upload,
+  RotateCcw,
+  Check
 } from 'lucide-react';
+
+export const DEFAULT_PROJECT_COVER =
+  'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800&auto=format&fit=crop&q=80';
+
+const PRESET_COVERS = [
+  { name: 'Gold Sparkle', url: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800&auto=format&fit=crop&q=80' },
+  { name: 'Romantic Rose', url: 'https://images.unsplash.com/photo-1558636508-e0db3814bd1d?w=800&auto=format&fit=crop&q=80' },
+  { name: 'Midnight Sky', url: 'https://images.unsplash.com/photo-1532767153582-b1a0e5145009?w=800&auto=format&fit=crop&q=80' },
+  { name: 'Birthday Cake', url: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800&auto=format&fit=crop&q=80' },
+  { name: 'Festive Lights', url: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&auto=format&fit=crop&q=80' },
+];
 
 interface ProjectModalProps {
   isOpen: boolean;
@@ -40,12 +55,14 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
   const [clientContact, setClientContact] = useState('');
   const [status, setStatus] = useState<ProjectStatus>('in_progress');
   const [theme, setTheme] = useState('Romantic Rose & Gold');
+  const [coverImageUrl, setCoverImageUrl] = useState('');
   const [deploymentPlatform, setDeploymentPlatform] = useState<DeploymentPlatform>('cloudflare');
   const [liveWebsiteUrl, setLiveWebsiteUrl] = useState('');
   const [githubRepoUrl, setGithubRepoUrl] = useState('');
   const [notes, setNotes] = useState('');
   const [isPinned, setIsPinned] = useState(false);
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (projectToEdit) {
@@ -55,6 +72,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
       setClientContact(projectToEdit.clientContact || '');
       setStatus(projectToEdit.status);
       setTheme(projectToEdit.theme);
+      setCoverImageUrl(projectToEdit.coverImageUrl || '');
       setDeploymentPlatform(projectToEdit.deploymentPlatform);
       setLiveWebsiteUrl(projectToEdit.liveWebsiteUrl || '');
       setGithubRepoUrl(projectToEdit.githubRepoUrl || '');
@@ -68,6 +86,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
       setClientContact(initialFromRequest.clientContact);
       setStatus('in_progress');
       setTheme('Romantic Rose & Gold');
+      setCoverImageUrl('');
       setDeploymentPlatform('cloudflare');
       setLiveWebsiteUrl('');
       setGithubRepoUrl('');
@@ -82,6 +101,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
       setClientContact('');
       setStatus('in_progress');
       setTheme('Romantic Rose & Gold');
+      setCoverImageUrl('');
       setDeploymentPlatform('cloudflare');
       setLiveWebsiteUrl('');
       setGithubRepoUrl('');
@@ -92,6 +112,24 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
   }, [projectToEdit, initialFromRequest, isOpen]);
 
   if (!isOpen) return null;
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Please choose an image under 5MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        if (result) {
+          setCoverImageUrl(result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleAddSocialLink = () => {
     const newLink: SocialLink = {
@@ -126,6 +164,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
       clientContact: clientContact.trim() || undefined,
       status,
       theme: theme.trim() || 'Classic Celebration',
+      coverImageUrl: coverImageUrl.trim() || DEFAULT_PROJECT_COVER,
       githubRepoUrl: githubRepoUrl.trim() || undefined,
       liveWebsiteUrl: liveWebsiteUrl.trim() || undefined,
       deploymentPlatform,
@@ -220,6 +259,104 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
                 placeholder="e.g. Ayesha, David, Chloe"
                 className="w-full px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-500"
               />
+            </div>
+          </div>
+
+          {/* Project Preview Image Feature */}
+          <div className="p-4 rounded-2xl bg-[#0b0e18] border border-purple-500/20 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-purple-400" />
+                <label className="text-xs font-semibold text-zinc-200">
+                  Project Preview Image / Banner
+                </label>
+              </div>
+              {coverImageUrl ? (
+                <button
+                  type="button"
+                  onClick={() => setCoverImageUrl('')}
+                  className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-amber-400 transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Reset to Default</span>
+                </button>
+              ) : (
+                <span className="text-[11px] text-purple-300/70 font-medium">Default Celebration Image Active</span>
+              )}
+            </div>
+
+            {/* Live Interactive Banner Preview */}
+            <div className="relative h-36 w-full rounded-xl overflow-hidden border border-[#1e253d] bg-[#070911] shadow-inner">
+              <img
+                src={coverImageUrl || DEFAULT_PROJECT_COVER}
+                alt="Project Preview"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = DEFAULT_PROJECT_COVER;
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#090c16]/90 via-black/30 to-black/40 flex flex-col justify-between p-3 pointer-events-none">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-black/60 text-purple-200 border border-purple-500/40 backdrop-blur-sm">
+                    {coverImageUrl ? 'Custom Image Loaded' : 'Default Preview Image'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-white text-base font-serif italic drop-shadow-md tracking-wide">
+                    Happy Birthday {recipientName.trim() || 'Celebrant'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* URL Input & Device Upload Button */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+              <div className="sm:col-span-2">
+                <input
+                  type="url"
+                  value={coverImageUrl}
+                  onChange={(e) => setCoverImageUrl(e.target.value)}
+                  placeholder="Paste your image URL (e.g. https://.../photo.jpg)"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full h-full min-h-[38px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#181a33] hover:bg-[#22244a] border border-purple-500/40 text-purple-200 text-xs font-semibold transition-all cursor-pointer active:scale-98"
+                >
+                  <Upload className="w-3.5 h-3.5 text-purple-300" />
+                  <span>Upload from Device</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Presets Carousel */}
+            <div className="flex items-center gap-1.5 pt-1 overflow-x-auto pb-1">
+              <span className="text-[10px] text-zinc-400 whitespace-nowrap mr-1 font-medium">Themes:</span>
+              {PRESET_COVERS.map((preset) => (
+                <button
+                  key={preset.name}
+                  type="button"
+                  onClick={() => setCoverImageUrl(preset.url)}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all whitespace-nowrap cursor-pointer ${
+                    coverImageUrl === preset.url
+                      ? 'bg-purple-600 text-white shadow-sm'
+                      : 'bg-[#121626] hover:bg-[#1b2238] text-zinc-400 hover:text-zinc-200 border border-[#1d253d]'
+                  }`}
+                >
+                  {preset.name}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -461,7 +598,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
             </button>
             <button
               type="submit"
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold text-zinc-950 bg-gradient-to-r from-amber-400 to-rose-400 hover:from-amber-300 hover:to-rose-300 shadow-md shadow-rose-950/20 active:scale-95 transition-all cursor-pointer"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:brightness-110 shadow-lg shadow-purple-900/30 active:scale-95 transition-all cursor-pointer"
             >
               <Save className="w-4 h-4" />
               <span>{projectToEdit ? 'Save Changes' : 'Create Project'}</span>

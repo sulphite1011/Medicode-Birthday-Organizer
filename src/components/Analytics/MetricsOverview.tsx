@@ -3,7 +3,7 @@ import { Project, ClientRequest } from '../../types';
 import {
   FolderArchive,
   Zap,
-  Users,
+  Star,
   Settings2,
   Rocket,
   Share2,
@@ -12,17 +12,14 @@ import {
 
 interface MetricsOverviewProps {
   projects: Project[];
-  requests: ClientRequest[];
+  requests?: ClientRequest[];
 }
 
-export const MetricsOverview: React.FC<MetricsOverviewProps> = ({ projects, requests }) => {
+export const MetricsOverview: React.FC<MetricsOverviewProps> = ({ projects }) => {
   const totalProjects = projects.length;
   const liveProjects = projects.filter((p) => p.status === 'live').length;
   const inProgressProjects = projects.filter((p) => p.status === 'in_progress').length;
-
-  const pendingRequests = requests.filter(
-    (r) => r.status === 'new' || r.status === 'in_progress'
-  ).length;
+  const starredProjects = projects.filter((p) => p.isPinned).length;
 
   // Aggregate Social Links & Views
   let totalShowcaseVideos = 0;
@@ -61,11 +58,11 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({ projects, requ
       valueColor: 'text-white',
     },
     {
-      id: 'requests',
-      label: 'Pending Requests',
-      value: pendingRequests,
-      subtitle: 'Client orders in queue',
-      icon: Users,
+      id: 'starred',
+      label: 'Starred Sites',
+      value: starredProjects,
+      subtitle: 'Pinned favorites',
+      icon: Star,
       badgeIcon: null,
       iconContainerStyle: 'bg-[#2c1d12] text-amber-400 border border-amber-500/30',
       borderHover: 'hover:border-amber-500/40',
@@ -85,7 +82,7 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({ projects, requ
     {
       id: 'videos',
       label: 'Showcase Videos',
-      value: totalShowcaseVideos > 0 ? totalShowcaseVideos : 111,
+      value: totalShowcaseVideos > 0 ? totalShowcaseVideos : (totalProjects > 0 ? totalProjects * 2 : 0),
       subtitle: 'Across all platforms',
       icon: Rocket,
       badgeIcon: null,
@@ -96,7 +93,7 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({ projects, requ
     {
       id: 'platforms',
       label: 'Social Platforms',
-      value: uniquePlatforms.size > 0 ? uniquePlatforms.size : 6,
+      value: uniquePlatforms.size > 0 ? uniquePlatforms.size : (totalProjects > 0 ? 3 : 0),
       subtitle: 'Connected platforms',
       icon: Share2,
       badgeIcon: null,

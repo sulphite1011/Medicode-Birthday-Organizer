@@ -21,9 +21,6 @@ import { ProjectList } from './components/ProjectHub/ProjectList';
 import { ProjectModal } from './components/ProjectHub/ProjectModal';
 import { DeleteConfirmModal } from './components/ProjectHub/DeleteConfirmModal';
 import { SocialLinksModal } from './components/SocialShowcase/SocialLinksModal';
-import { RequestBoard } from './components/ClientRequests/RequestBoard';
-import { RequestModal } from './components/ClientRequests/RequestModal';
-import { BuilderWorkspace } from './components/Builder/BuilderWorkspace';
 import { DeploymentCenter } from './components/Deployment/DeploymentCenter';
 import { SettingsModal } from './components/Settings/SettingsModal';
 
@@ -337,26 +334,15 @@ export default function App() {
         </div>
       )}
 
-      {/* Left Sidebar Navigation (Matching image.png) */}
+      {/* Left Sidebar Navigation */}
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         projectCount={projects.length}
-        pendingRequestsCount={pendingRequestsCount}
         onNewProject={() => {
           setProjectToEdit(null);
           setInitialFromRequest(null);
           setIsProjectModalOpen(true);
-        }}
-        onNewRequest={() => {
-          setRequestToEdit(null);
-          setIsRequestModalOpen(true);
-        }}
-        onOpenBuilder={() => {
-          if (projects.length > 0) {
-            setBuilderSelectedProject(projects[0]);
-          }
-          setActiveTab('builder');
         }}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
         isOpenMobile={isMobileSidebarOpen}
@@ -378,9 +364,9 @@ export default function App() {
         {/* Content View */}
         <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 py-6 space-y-6">
           
-          {/* Tab 1: Dashboard / Projects Hub */}
-          {activeTab === 'projects' && (
-            <div className="space-y-6">
+          {/* Dashboard & Projects Hub */}
+          {(activeTab === 'dashboard' || activeTab === 'projects') && (
+            <div id="dashboard-top" className="space-y-6">
               {/* Hero Banner: Greeting & Celestial Badge */}
               <HeroBanner creatorName={settings.creatorName || 'Hamad'} />
 
@@ -407,55 +393,15 @@ export default function App() {
                   setProjectForSocials(proj);
                   setIsSocialModalOpen(true);
                 }}
-                onOpenBuilder={handleOpenBuilder}
               />
             </div>
           )}
 
-          {/* Tab 2: Orders / Client Requests Pipeline */}
-          {activeTab === 'requests' && (
-            <RequestBoard
-              requests={requests}
-              projects={projects}
-              onNewRequest={() => {
-                setRequestToEdit(null);
-                setIsRequestModalOpen(true);
-              }}
-              onEditRequest={(req) => {
-                setRequestToEdit(req);
-                setIsRequestModalOpen(true);
-              }}
-              onDeleteRequest={handleDeleteRequest}
-              onConvertToProject={handleConvertToProject}
-              onUpdateStatus={handleUpdateOrderStatus}
-            />
-          )}
-
-          {/* Tab 3: Website Builder & Device Simulator */}
-          {activeTab === 'builder' && (
-            <div>
-              {builderSelectedProject ? (
-                <BuilderWorkspace
-                  projects={projects}
-                  selectedProject={builderSelectedProject}
-                  onSelectProject={(p) => setBuilderSelectedProject(p)}
-                  onSaveProject={handleSaveProject}
-                  onBackToDashboard={() => setActiveTab('projects')}
-                />
-              ) : (
-                <div className="py-20 text-center text-zinc-400">
-                  No project selected. Go to Dashboard and click &ldquo;Builder&rdquo; on any website.
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Tab 4: Deployments Hub */}
+          {/* Deployments Hub */}
           {activeTab === 'deployments' && (
             <DeploymentCenter
               projects={projects}
               onUpdateProject={handleSaveProject}
-              onOpenProjectBuilder={handleOpenBuilder}
             />
           )}
 
@@ -537,16 +483,7 @@ export default function App() {
         onSave={handleSaveProject}
       />
 
-      {/* 3. Client Request Modal */}
-      <RequestModal
-        isOpen={isRequestModalOpen}
-        onClose={() => setIsRequestModalOpen(false)}
-        onSave={handleSaveRequest}
-        requestToEdit={requestToEdit}
-        projects={projects}
-      />
-
-      {/* 4. Settings & Backup/Restore Modal */}
+      {/* 3. Settings & Backup/Restore Modal */}
       <SettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}

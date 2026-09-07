@@ -23,6 +23,11 @@ import { DeleteConfirmModal } from './components/ProjectHub/DeleteConfirmModal';
 import { SocialLinksModal } from './components/SocialShowcase/SocialLinksModal';
 import { DeploymentCenter } from './components/Deployment/DeploymentCenter';
 import { SettingsModal } from './components/Settings/SettingsModal';
+import { ClientPortal } from './components/ClientPortal/ClientPortal';
+import { AdminLockModal } from './components/Admin/AdminLockModal';
+import { RequestBoard } from './components/ClientRequests/RequestBoard';
+import { RequestModal } from './components/ClientRequests/RequestModal';
+import { Lock, Sparkles } from 'lucide-react';
 
 export default function App() {
   // App State
@@ -32,6 +37,30 @@ export default function App() {
   const [requests, setRequests] = useState<ClientRequest[]>([]);
   const [settings, setSettings] = useState<AppSettings>(initialSettings);
   const [firebaseStatus, setFirebaseStatus] = useState<'connected' | 'offline_local' | 'syncing'>('offline_local');
+
+  // Security & Portal View Routing
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('hamad_admin_authenticated') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [viewMode, setViewMode] = useState<'admin' | 'client'>(() => {
+    if (typeof window !== 'undefined') {
+      if (window.location.hash === '#admin') return 'admin';
+      if (window.location.hash === '#client') return 'client';
+    }
+    try {
+      if (sessionStorage.getItem('hamad_admin_authenticated') === 'true') {
+        return 'admin';
+      }
+    } catch {}
+    return 'client';
+  });
+
+  const [isAdminLockModalOpen, setIsAdminLockModalOpen] = useState(false);
 
   // Modals State
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
@@ -122,6 +151,42 @@ export default function App() {
     };
   }, []);
 
+  // Hash change & Secret Admin shortcut listener (Ctrl + Shift + A)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash === '#admin') {
+        if (!isAdminAuthenticated) {
+          setIsAdminLockModalOpen(true);
+        } else {
+          setViewMode('admin');
+        }
+      } else if (hash === '#client') {
+        setViewMode('client');
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Secret creator shortcut: Ctrl+Shift+A or Cmd+Shift+A opens admin unlock
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        if (!isAdminAuthenticated) {
+          setIsAdminLockModalOpen(true);
+        } else {
+          setViewMode('admin');
+          window.location.hash = 'admin';
+        }
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isAdminAuthenticated]);
+
   // Sync builderSelectedProject when projects update
   useEffect(() => {
     if (builderSelectedProject) {
@@ -133,6 +198,80 @@ export default function App() {
       setBuilderSelectedProject(projects[0]);
     }
   }, [projects]);
+
+  // Unlock Admin Command Center
+  const handleUnlockAdmin = () => {
+    setIsAdminAuthenticated(true);
+    try {
+      sessionStorage.setItem('hamad_admin_authenticated', 'true');
+    } catch {}
+    setIsAdminLockModalOpen(false);
+    setViewMode('admin');
+    window.location.hash = 'admin';
+    showToast(`Welcome back, ${settings.creatorName || 'Hamad'}! Command Center unlocked.`);
+  };
+
+  // Lock Admin Command Center
+  const handleLockAdmin = () => {
+    setIsAdminAuthenticated(false);
+    try {
+      sessionStorage.removeItem('hamad_admin_authenticated');
+    } catch {}
+    setViewMode('client');
+    window.location.hash = 'client';
+    showToast('Personal Command Center locked.');
+  };
+
+  // Switch to Client View
+  const handleSwitchToClient = () => {
+    setViewMode('client');
+    window.location.hash = 'client';
+  };
+
+  // Client Order Submission from Client Portal
+  const handleClientSubmitOrder = async (orderData: Partial<ClientRequest>) => {
+    const newRequest: ClientRequest = {
+      id: `req_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      clientName: orderData.clientName || 'Client Visitor',
+      clientContact: orderData.clientContact || '',
+      clientGmail: orderData.clientGmail || '',
+      recipientName: orderData.recipientName || 'Loved One',
+      websiteType: orderData.websiteType || 'Custom Celebration Website',
+      occasion: orderData.occasion || 'birthday',
+      requirements: orderData.requirements || '',
+      budget: orderData.budget || 'PKR 1,500',
+      paymentStatus: 'unpaid',
+      status: 'new',
+      orderDate: new Date().toISOString(),
+      dueDate: orderData.dueDate || '',
+      notes: orderData.notes || '',
+      connectedProjectId: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    setRequests((prev) => [newRequest, ...prev]);
+    saveLocalRequests([newRequest, ...requests]);
+    try {
+      await syncService.saveRequest(newRequest);
+    } catch (e) {
+      console.error('Failed to sync new order:', e);
+    }
+    showToast('Order inquiry received! Hamad will review and contact you.');
+  };
+
+  // Handle Updating Admin Passcode from Reset Flow
+  const handleUpdatePasscode = async (newPasscode: string) => {
+    const updatedSettings: AppSettings = {
+      ...settings,
+      adminPasscode: newPasscode,
+      updatedAt: new Date().toISOString(),
+    };
+    setSettings(updatedSettings);
+    saveLocalSettings(updatedSettings);
+    await syncService.saveSettings(updatedSettings);
+    showToast('Secret key updated successfully!');
+  };
 
   // Project CRUD Handlers
   const handleSaveProject = async (project: Project) => {
@@ -323,6 +462,72 @@ export default function App() {
     (r) => r.status === 'new' || r.status === 'in_progress'
   ).length;
 
+  // Render Client Portal if in client viewMode OR if admin not authenticated
+  if (viewMode === 'client' || (!isAdminAuthenticated && viewMode === 'admin')) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-zinc-100 font-['Outfit'] selection:bg-amber-500/30 selection:text-white">
+        
+        {/* If Creator is logged in and viewing Client Portal, show Creator Top Bar */}
+        {isAdminAuthenticated && (
+          <div className="sticky top-0 z-50 bg-amber-500/10 border-b border-amber-500/30 backdrop-blur-md px-4 py-2 text-xs flex items-center justify-between">
+            <div className="flex items-center gap-2 text-amber-300 font-medium">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>👑 Creator Mode Active (Previewing as Client)</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  setViewMode('admin');
+                  window.location.hash = 'admin';
+                }}
+                className="px-3 py-1 rounded-lg bg-amber-500 text-zinc-950 font-bold hover:bg-amber-400 transition-colors cursor-pointer"
+              >
+                Return to Admin Command Center →
+              </button>
+              <button
+                onClick={handleLockAdmin}
+                className="p-1 text-zinc-400 hover:text-rose-400 transition-colors cursor-pointer"
+                title="Lock Command Center"
+              >
+                <Lock className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Public Client Portal */}
+        <ClientPortal
+          projects={projects}
+          settings={settings}
+          onOpenAdminLogin={() => setIsAdminLockModalOpen(true)}
+          onSubmitOrder={handleClientSubmitOrder}
+        />
+
+        {/* Admin Passcode Lock Modal */}
+        <AdminLockModal
+          isOpen={isAdminLockModalOpen || (viewMode === 'admin' && !isAdminAuthenticated)}
+          onClose={() => {
+            setIsAdminLockModalOpen(false);
+            setViewMode('client');
+            window.location.hash = 'client';
+          }}
+          onUnlock={handleUnlockAdmin}
+          settings={settings}
+          onUpdatePasscode={handleUpdatePasscode}
+        />
+
+        {/* Toast Notification */}
+        {toastMessage && (
+          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl bg-zinc-900 border border-amber-500/40 text-amber-200 text-xs font-semibold shadow-2xl shadow-black/80 animate-in fade-in slide-in-from-bottom-3">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Otherwise render Private Admin Command Center (Hamad Only)
   return (
     <div className="min-h-screen bg-[#070911] text-zinc-100 flex font-['Inter',sans-serif] selection:bg-purple-500/30 selection:text-white">
       
@@ -339,6 +544,7 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         projectCount={projects.length}
+        requestCount={pendingRequestsCount}
         onNewProject={() => {
           setProjectToEdit(null);
           setInitialFromRequest(null);
@@ -347,6 +553,8 @@ export default function App() {
         onOpenSettings={() => setIsSettingsModalOpen(true)}
         isOpenMobile={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        onSwitchToClient={handleSwitchToClient}
+        onLockAdmin={handleLockAdmin}
       />
 
       {/* Main Command Center Stage */}
@@ -359,6 +567,8 @@ export default function App() {
           syncMessage={firebaseStatus === 'connected' ? 'Connected to Firestore' : 'Synced with Local Storage'}
           onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
+          onSwitchToClient={handleSwitchToClient}
+          onLockAdmin={handleLockAdmin}
         />
 
         {/* Content View */}
@@ -395,6 +605,25 @@ export default function App() {
                 }}
               />
             </div>
+          )}
+
+          {/* Inquiries & Client Requests Tab */}
+          {activeTab === 'inquiries' && (
+            <RequestBoard
+              requests={requests}
+              projects={projects}
+              onNewRequest={() => {
+                setRequestToEdit(null);
+                setIsRequestModalOpen(true);
+              }}
+              onEditRequest={(req) => {
+                setRequestToEdit(req);
+                setIsRequestModalOpen(true);
+              }}
+              onDeleteRequest={handleDeleteRequest}
+              onConvertToProject={handleConvertToProject}
+              onUpdateStatus={handleUpdateOrderStatus}
+            />
           )}
 
           {/* Deployments Hub */}
@@ -452,9 +681,9 @@ export default function App() {
           <div className="flex items-center justify-center gap-2">
             <span className="font-semibold text-zinc-300 font-['Outfit']">{settings.studioName}</span>
             <span>•</span>
-            <span>Private Creator &amp; Deployment Workspace</span>
+            <span>Private Personal Command Center</span>
             <span>•</span>
-            <span className="text-purple-400/80">Creator: {settings.creatorName}</span>
+            <span className="text-amber-400 font-semibold">Creator: {settings.creatorName || 'Hamad'}</span>
           </div>
         </footer>
       </div>
@@ -472,7 +701,7 @@ export default function App() {
         initialFromRequest={initialFromRequest}
       />
 
-      {/* 2. Social Links Modal (Requirement #4) */}
+      {/* 2. Social Links Modal */}
       <SocialLinksModal
         isOpen={isSocialModalOpen}
         onClose={() => {
@@ -483,7 +712,16 @@ export default function App() {
         onSave={handleSaveProject}
       />
 
-      {/* 3. Settings & Backup/Restore Modal */}
+      {/* 3. Client Request / Order Modal */}
+      <RequestModal
+        isOpen={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
+        onSave={handleSaveRequest}
+        requestToEdit={requestToEdit}
+        projects={projects}
+      />
+
+      {/* 4. Settings & Security Modal */}
       <SettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
@@ -496,13 +734,21 @@ export default function App() {
         firebaseStatus={firebaseStatus}
       />
 
-      {/* 5. Delete Confirmation Modal (Requirement #23) */}
+      {/* 5. Delete Confirmation Modal */}
       <DeleteConfirmModal
         isOpen={deleteConfirm.isOpen}
         onClose={() => setDeleteConfirm((prev) => ({ ...prev, isOpen: false }))}
         onConfirm={handleConfirmDelete}
         title={deleteConfirm.title}
         description={deleteConfirm.description}
+      />
+
+      {/* 6. Admin Lock Modal */}
+      <AdminLockModal
+        isOpen={isAdminLockModalOpen}
+        onClose={() => setIsAdminLockModalOpen(false)}
+        onUnlock={handleUnlockAdmin}
+        settings={settings}
       />
 
     </div>

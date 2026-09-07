@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Project, DeploymentPlatform, ProjectStatus, SocialLink } from '../../types';
+import { Project, DeploymentPlatform, ProjectStatus, SocialLink, WebsiteOccasion } from '../../types';
 import { defaultBirthdaySiteData } from '../../data/initialData';
 import {
   X,
@@ -55,6 +55,10 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
   const [clientContact, setClientContact] = useState('');
   const [status, setStatus] = useState<ProjectStatus>('in_progress');
   const [theme, setTheme] = useState('Romantic Rose & Gold');
+  const [occasion, setOccasion] = useState<WebsiteOccasion>('birthday');
+  const [price, setPrice] = useState('$35');
+  const [description, setDescription] = useState('');
+  const [isPublicShowcase, setIsPublicShowcase] = useState(true);
   const [coverImageUrl, setCoverImageUrl] = useState('');
   const [deploymentPlatform, setDeploymentPlatform] = useState<DeploymentPlatform>('cloudflare');
   const [liveWebsiteUrl, setLiveWebsiteUrl] = useState('');
@@ -72,6 +76,10 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
       setClientContact(projectToEdit.clientContact || '');
       setStatus(projectToEdit.status);
       setTheme(projectToEdit.theme);
+      setOccasion(projectToEdit.occasion || 'birthday');
+      setPrice(projectToEdit.price || '$35');
+      setDescription(projectToEdit.description || '');
+      setIsPublicShowcase(projectToEdit.isPublicShowcase !== false);
       setCoverImageUrl(projectToEdit.coverImageUrl || '');
       setDeploymentPlatform(projectToEdit.deploymentPlatform);
       setLiveWebsiteUrl(projectToEdit.liveWebsiteUrl || '');
@@ -80,12 +88,16 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
       setIsPinned(projectToEdit.isPinned);
       setSocialLinks(projectToEdit.socialLinks ? [...projectToEdit.socialLinks] : []);
     } else if (initialFromRequest) {
-      setName(`Birthday Website — ${initialFromRequest.recipientName}`);
+      setName(`Celebration Website — ${initialFromRequest.recipientName}`);
       setRecipientName(initialFromRequest.recipientName);
       setClientName(initialFromRequest.clientName);
       setClientContact(initialFromRequest.clientContact);
       setStatus('in_progress');
       setTheme('Romantic Rose & Gold');
+      setOccasion('birthday');
+      setPrice('$35');
+      setDescription('');
+      setIsPublicShowcase(true);
       setCoverImageUrl('');
       setDeploymentPlatform('cloudflare');
       setLiveWebsiteUrl('');
@@ -101,6 +113,10 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
       setClientContact('');
       setStatus('in_progress');
       setTheme('Romantic Rose & Gold');
+      setOccasion('birthday');
+      setPrice('$35');
+      setDescription('');
+      setIsPublicShowcase(true);
       setCoverImageUrl('');
       setDeploymentPlatform('cloudflare');
       setLiveWebsiteUrl('');
@@ -164,6 +180,10 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
       clientContact: clientContact.trim() || undefined,
       status,
       theme: theme.trim() || 'Classic Celebration',
+      occasion,
+      price: price.trim() || '$35',
+      description: description.trim() || undefined,
+      isPublicShowcase,
       coverImageUrl: coverImageUrl.trim() || DEFAULT_PROJECT_COVER,
       githubRepoUrl: githubRepoUrl.trim() || undefined,
       liveWebsiteUrl: liveWebsiteUrl.trim() || undefined,
@@ -258,6 +278,72 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
                 onChange={(e) => setRecipientName(e.target.value)}
                 placeholder="e.g. Ayesha, David, Chloe"
                 className="w-full px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+          </div>
+
+          {/* Row 2: Occasion & Price & Client Showcase Details */}
+          <div className="p-4 rounded-2xl bg-zinc-950/80 border border-amber-500/20 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" />
+                Client Showcase & Catalog Settings
+              </span>
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-zinc-300 select-none">
+                <input
+                  type="checkbox"
+                  checked={isPublicShowcase}
+                  onChange={(e) => setIsPublicShowcase(e.target.checked)}
+                  className="rounded border-zinc-700 text-amber-500 focus:ring-amber-500/20 bg-zinc-900"
+                />
+                <span>Visible on Client Website</span>
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">
+                  Occasion / Category
+                </label>
+                <select
+                  value={occasion}
+                  onChange={(e) => setOccasion(e.target.value as WebsiteOccasion)}
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+                >
+                  <option value="birthday">🎂 Birthday Wishing Website</option>
+                  <option value="feel_special">💖 Make Someone Feel Special</option>
+                  <option value="best_friend">👯 Best Friend Day</option>
+                  <option value="teachers_day">🎓 Teachers Day & Mentors</option>
+                  <option value="propose">💍 Proposal & "Will You Marry Me?"</option>
+                  <option value="marriage">💒 Marriage Cards & Wedding</option>
+                  <option value="other">🎉 Other Special Events & Milestones</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">
+                  Price Mentioned for Clients (PKR)
+                </label>
+                <input
+                  type="text"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="e.g. PKR 1,000 to PKR 2,000 (e.g. PKR 1,500)"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1">
+                Showcase Tagline / Highlights for Clients
+              </label>
+              <input
+                type="text"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="e.g. Digital wax seal letter, photo timeline, music player, surprise reveal gifts."
+                className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-amber-500"
               />
             </div>
           </div>

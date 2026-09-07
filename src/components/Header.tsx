@@ -8,7 +8,10 @@ import {
   AlertCircle,
   HardDrive,
   Settings,
-  Sparkles
+  Sparkles,
+  Globe,
+  Lock,
+  ExternalLink
 } from 'lucide-react';
 import { SyncState, AppSettings } from '../types';
 
@@ -18,6 +21,8 @@ interface HeaderProps {
   syncMessage?: string;
   onOpenMobileMenu: () => void;
   onOpenSettings: () => void;
+  onSwitchToClient?: () => void;
+  onLockAdmin?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -26,6 +31,8 @@ export const Header: React.FC<HeaderProps> = ({
   syncMessage,
   onOpenMobileMenu,
   onOpenSettings,
+  onSwitchToClient,
+  onLockAdmin,
 }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
@@ -94,6 +101,30 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
+          {/* View Client Website Button */}
+          {onSwitchToClient && (
+            <button
+              onClick={onSwitchToClient}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-semibold shadow-sm transition-all cursor-pointer"
+              title="Open the client-facing website catalog"
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Client Website</span>
+              <span className="sm:hidden">Website</span>
+            </button>
+          )}
+
+          {/* Lock Command Center Button */}
+          {onLockAdmin && (
+            <button
+              onClick={onLockAdmin}
+              className="p-2 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-amber-400 border border-zinc-800 transition-colors cursor-pointer"
+              title="Lock Command Center (Requires Passcode to re-enter)"
+            >
+              <Lock className="w-4 h-4" />
+            </button>
+          )}
+
           {/* Notifications Bell */}
           <button
             onClick={onOpenSettings}
@@ -137,16 +168,30 @@ export const Header: React.FC<HeaderProps> = ({
                     <Settings className="w-3.5 h-3.5 text-purple-400" />
                     Studio Settings
                   </button>
-                  <button
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      onOpenSettings();
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-zinc-200 hover:bg-[#1a2238] transition-colors text-left"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    Branding &amp; Domain
-                  </button>
+                  {onSwitchToClient && (
+                    <button
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        onSwitchToClient();
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-amber-300 hover:bg-[#1a2238] transition-colors text-left"
+                    >
+                      <Globe className="w-3.5 h-3.5 text-amber-400" />
+                      View Client Website
+                    </button>
+                  )}
+                  {onLockAdmin && (
+                    <button
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        onLockAdmin();
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-rose-300 hover:bg-rose-950/30 transition-colors text-left"
+                    >
+                      <Lock className="w-3.5 h-3.5 text-rose-400" />
+                      Lock Command Center
+                    </button>
+                  )}
                 </div>
               </>
             )}

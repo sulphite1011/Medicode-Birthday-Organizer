@@ -76,6 +76,26 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
     return views.toLocaleString();
   };
 
+  const getOccasionBadge = (occ?: string) => {
+    switch (occ) {
+      case 'propose':
+        return { label: '💍 Proposal', color: 'bg-rose-500/20 text-rose-300 border-rose-500/40' };
+      case 'marriage':
+        return { label: '💒 Wedding Card', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' };
+      case 'best_friend':
+        return { label: '👯 Best Friend', color: 'bg-pink-500/20 text-pink-300 border-pink-500/40' };
+      case 'teachers_day':
+        return { label: '🎓 Teachers Day', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40' };
+      case 'feel_special':
+        return { label: '💖 Feel Special', color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' };
+      case 'other':
+        return { label: '🎉 Special Event', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40' };
+      case 'birthday':
+      default:
+        return { label: '🎂 Birthday', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40' };
+    }
+  };
+
   const getStatusBadge = (status: Project['status']) => {
     switch (status) {
       case 'live':
@@ -140,6 +160,11 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
 
         {/* Right Status & Menu */}
         <div className="flex items-center gap-2">
+          {project.price && (
+            <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+              {project.price}
+            </span>
+          )}
           {getStatusBadge(project.status)}
 
           <div className="relative">
@@ -227,10 +252,29 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         {/* Dark Vignette Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0b0e18] via-black/40 to-black/30" />
 
-        {/* Styled Cursive Greeting on Image */}
-        <div className="absolute top-4 left-4 right-4 pointer-events-none">
-          <span className="text-white text-base sm:text-lg font-serif italic drop-shadow-md tracking-wide">
-            Happy Birthday {project.recipientName}
+        {/* Styled Greeting & Occasion Tag on Image */}
+        <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border backdrop-blur-md shadow-sm ${getOccasionBadge(project.occasion).color}`}>
+            {getOccasionBadge(project.occasion).label}
+          </span>
+          {project.isPublicShowcase !== false && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-black/60 text-zinc-300 border border-white/20 backdrop-blur-md">
+              🌐 Client Portal
+            </span>
+          )}
+        </div>
+
+        <div className="absolute bottom-3 left-3 right-3 pointer-events-none">
+          <span className="text-white text-sm sm:text-base font-serif italic drop-shadow-md tracking-wide line-clamp-1">
+            {project.occasion === 'propose'
+              ? `💍 Proposal for ${project.recipientName}`
+              : project.occasion === 'marriage'
+              ? `💒 Wedding Card: ${project.recipientName}`
+              : project.occasion === 'teachers_day'
+              ? `🎓 Tribute to ${project.recipientName}`
+              : project.occasion === 'best_friend'
+              ? `👯 Best Friend: ${project.recipientName}`
+              : `Celebrating ${project.recipientName}`}
           </span>
         </div>
 

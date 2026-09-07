@@ -8,6 +8,9 @@ import {
   Plus,
   Crown,
   Sparkles,
+  Inbox,
+  Globe,
+  Lock,
   X
 } from 'lucide-react';
 import { NavigationTab } from '../types';
@@ -16,20 +19,26 @@ interface SidebarProps {
   activeTab: NavigationTab;
   setActiveTab: (tab: NavigationTab) => void;
   projectCount: number;
+  requestCount?: number;
   onNewProject: () => void;
   onOpenSettings: () => void;
   isOpenMobile: boolean;
   onCloseMobile: () => void;
+  onSwitchToClient?: () => void;
+  onLockAdmin?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   setActiveTab,
   projectCount,
+  requestCount = 0,
   onNewProject,
   onOpenSettings,
   isOpenMobile,
   onCloseMobile,
+  onSwitchToClient,
+  onLockAdmin,
 }) => {
   const handleNavClick = (tab: NavigationTab) => {
     setActiveTab(tab);
@@ -133,6 +142,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </span>
             </button>
 
+            {/* Inquiries & Client Orders Button */}
+            <button
+              onClick={() => handleNavClick('inquiries')}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'inquiries'
+                  ? 'bg-gradient-to-r from-purple-900/40 to-indigo-900/30 text-white border border-purple-500/30 shadow-md shadow-purple-950/20'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#111626]'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Inbox className={`w-4 h-4 ${activeTab === 'inquiries' ? 'text-amber-400' : 'text-zinc-400'}`} />
+                <span>Client Orders / DMs</span>
+              </div>
+              {requestCount > 0 && (
+                <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                  {requestCount}
+                </span>
+              )}
+            </button>
+
             {/* Deployments Button */}
             <button
               onClick={() => handleNavClick('deployments')}
@@ -173,6 +202,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span>Settings</span>
               </div>
             </button>
+
+            {/* Divider */}
+            <div className="pt-2 border-t border-[#141a2b] space-y-1">
+              {onSwitchToClient && (
+                <button
+                  onClick={() => {
+                    onCloseMobile();
+                    onSwitchToClient();
+                  }}
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <Globe className="w-4 h-4 text-amber-400" />
+                    <span>🌐 Client Website</span>
+                  </div>
+                  <span className="text-[10px] uppercase font-semibold text-amber-400">Live</span>
+                </button>
+              )}
+
+              {onLockAdmin && (
+                <button
+                  onClick={() => {
+                    onCloseMobile();
+                    onLockAdmin();
+                  }}
+                  className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-rose-400 hover:bg-rose-950/20 transition-all cursor-pointer"
+                >
+                  <Lock className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Lock Command Center</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Quick Actions Section */}

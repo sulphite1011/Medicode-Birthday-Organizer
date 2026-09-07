@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ClientRequest, OrderStatus, PaymentStatus, Project } from '../../types';
+import { ClientRequest, OrderStatus, PaymentStatus, Project, WebsiteOccasion } from '../../types';
 import {
   X,
   Inbox,
@@ -28,7 +28,9 @@ export const RequestModal: React.FC<RequestModalProps> = ({
 }) => {
   const [clientName, setClientName] = useState('');
   const [clientContact, setClientContact] = useState('');
+  const [clientGmail, setClientGmail] = useState('');
   const [recipientName, setRecipientName] = useState('');
+  const [occasion, setOccasion] = useState<WebsiteOccasion>('birthday');
   const [websiteType, setWebsiteType] = useState('Romantic Love Story');
   const [requirements, setRequirements] = useState('');
   const [budget, setBudget] = useState('$150');
@@ -43,7 +45,9 @@ export const RequestModal: React.FC<RequestModalProps> = ({
     if (requestToEdit) {
       setClientName(requestToEdit.clientName);
       setClientContact(requestToEdit.clientContact || '');
+      setClientGmail(requestToEdit.clientGmail || '');
       setRecipientName(requestToEdit.recipientName);
+      setOccasion(requestToEdit.occasion || 'birthday');
       setWebsiteType(requestToEdit.websiteType);
       setRequirements(requestToEdit.requirements || '');
       setBudget(requestToEdit.budget || '');
@@ -56,7 +60,9 @@ export const RequestModal: React.FC<RequestModalProps> = ({
     } else {
       setClientName('');
       setClientContact('');
+      setClientGmail('');
       setRecipientName('');
+      setOccasion('birthday');
       setWebsiteType('Romantic Love Story');
       setRequirements('');
       setBudget('$150');
@@ -79,7 +85,9 @@ export const RequestModal: React.FC<RequestModalProps> = ({
       id: requestToEdit ? requestToEdit.id : `req-${Date.now()}`,
       clientName: clientName.trim(),
       clientContact: clientContact.trim(),
+      clientGmail: clientGmail.trim() || undefined,
       recipientName: recipientName.trim(),
+      occasion,
       websiteType: websiteType.trim(),
       requirements: requirements.trim(),
       budget: budget.trim(),
@@ -158,19 +166,53 @@ export const RequestModal: React.FC<RequestModalProps> = ({
             </div>
           </div>
 
-          {/* Contact & Type */}
+          {/* Contact, Gmail, Occasion & Type */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
               <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                Client Contact / Social Handle
+                Client Contact (WhatsApp / Phone)
               </label>
               <input
                 type="text"
                 value={clientContact}
                 onChange={(e) => setClientContact(e.target.value)}
-                placeholder="e.g. @hamza_m (IG) / +1 555-0192"
+                placeholder="e.g. +92 300 1234567"
                 className="w-full px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-500"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                Client Gmail / Email
+              </label>
+              <input
+                type="email"
+                value={clientGmail}
+                onChange={(e) => setClientGmail(e.target.value)}
+                placeholder="e.g. client@gmail.com"
+                className="w-full px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                Occasion / Celebration Category
+              </label>
+              <select
+                value={occasion}
+                onChange={(e) => setOccasion(e.target.value as WebsiteOccasion)}
+                className="w-full px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-sm text-zinc-100 focus:outline-none focus:border-amber-500 cursor-pointer"
+              >
+                <option value="birthday">🎂 Birthday Website</option>
+                <option value="propose">💍 Proposal / Marry Me</option>
+                <option value="marriage">💒 Marriage &amp; Wedding Cards</option>
+                <option value="feel_special">💖 Feel Special &amp; Loved</option>
+                <option value="best_friend">👯 Best Friend Day</option>
+                <option value="teachers_day">🎓 Teachers Day Tribute</option>
+                <option value="other">🎉 Other Special Event</option>
+              </select>
             </div>
 
             <div>
@@ -208,13 +250,13 @@ export const RequestModal: React.FC<RequestModalProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                Price / Budget
+                Price / Budget (PKR)
               </label>
               <input
                 type="text"
                 value={budget}
                 onChange={(e) => setBudget(e.target.value)}
-                placeholder="e.g. $150"
+                placeholder="e.g. PKR 1,500"
                 className="w-full px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-500"
               />
             </div>

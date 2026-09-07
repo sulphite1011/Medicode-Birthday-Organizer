@@ -1,6 +1,6 @@
 {
   "name": "WishCraft Studio — Birthday Websites Organizer",
-  "description": "Private creator command center for managing birthday websites, custom preview images, deployments, and multi-platform social showcases.",
+  "description": "Private personal creator command center for Hamad with locked access, and public client showcase portal for ordering custom birthday, proposal, marriage card, and tribute websites with social video showcases.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

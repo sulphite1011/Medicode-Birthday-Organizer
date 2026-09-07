@@ -130,6 +130,32 @@ export const ProjectList: React.FC<ProjectListProps> = ({
   return (
     <div id="projects-section" className="space-y-6">
       
+      {/* Top Header Row with Title and + New Project Button */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-white font-['Outfit'] tracking-tight flex items-center gap-2.5">
+            <FolderHeart className="w-6 h-6 text-rose-400" />
+            <span>Project Library &amp; Showcase</span>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono border border-purple-500/30">
+              {projects.length}
+            </span>
+          </h2>
+          <p className="text-xs text-zinc-400 mt-0.5">
+            Create, manage preview images, track prices, set client portal visibility, and link demo videos.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          id="btn-new-project-hub"
+          onClick={onNewProject}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 hover:brightness-110 text-zinc-950 font-bold text-xs shadow-lg shadow-amber-500/20 active:scale-[0.98] transition-all cursor-pointer shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          <span>+ Create New Project</span>
+        </button>
+      </div>
+
       {/* Search & Control Toolbar */}
       <div className="p-4 rounded-2xl bg-[#0a0d17] border border-[#171e30] space-y-3.5 shadow-xl shadow-black/20">
         

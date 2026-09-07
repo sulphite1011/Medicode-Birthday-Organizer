@@ -43,6 +43,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [activeTab, setActiveTab] = useState<'general' | 'backup' | 'cloud'>('general');
   const [creatorName, setCreatorName] = useState(settings.creatorName);
   const [studioName, setStudioName] = useState(settings.studioName);
+  const [adminPasscode, setAdminPasscode] = useState(settings.adminPasscode || '7788');
+  const [creatorWhatsApp, setCreatorWhatsApp] = useState(settings.creatorWhatsApp || '+92 300 1234567');
+  const [creatorGmail, setCreatorGmail] = useState(settings.creatorGmail || 'hamadkhan11h22@gmail.com');
+  const [creatorTikTokUrl, setCreatorTikTokUrl] = useState(settings.creatorTikTokUrl || '');
+  const [creatorInstagramUrl, setCreatorInstagramUrl] = useState(settings.creatorInstagramUrl || '');
   const [defaultPlatform, setDefaultPlatform] = useState(settings.defaultDeploymentPlatform);
   const [defaultTheme, setDefaultTheme] = useState(settings.defaultTheme);
   
@@ -60,6 +65,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       ...settings,
       creatorName: creatorName.trim() || 'Creator',
       studioName: studioName.trim() || 'WishCraft Studio',
+      adminPasscode: adminPasscode.trim() || '7788',
+      creatorWhatsApp: creatorWhatsApp.trim() || '+92 300 1234567',
+      creatorGmail: creatorGmail.trim() || 'hamadkhan11h22@gmail.com',
+      creatorTikTokUrl: creatorTikTokUrl.trim() || undefined,
+      creatorInstagramUrl: creatorInstagramUrl.trim() || undefined,
       defaultDeploymentPlatform: defaultPlatform,
       defaultTheme: defaultTheme.trim() || 'Romantic Rose & Gold',
     };
@@ -200,6 +210,86 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 onChange={(e) => setCreatorName(e.target.value)}
                 className="w-full px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-sm text-zinc-100 focus:outline-none focus:border-amber-500"
               />
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5" />
+                  Personal Security Passcode (PIN)
+                </span>
+                <span className="text-[10px] text-amber-200/70 font-mono">Restricted Access</span>
+              </div>
+              <p className="text-[11px] text-zinc-400">
+                This passcode locks your personal command center so no one else can access your projects, deployments, or settings.
+              </p>
+              <input
+                type="text"
+                value={adminPasscode}
+                onChange={(e) => setAdminPasscode(e.target.value)}
+                placeholder="e.g. 7788"
+                className="w-full px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-sm font-mono text-amber-300 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            {/* Creator Contact for Client Inquiries */}
+            <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-3">
+              <span className="text-xs font-bold text-zinc-200">
+                Creator Contact Details (For Client Orders &amp; DMs)
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] text-zinc-400 mb-1">
+                    Your WhatsApp Number
+                  </label>
+                  <input
+                    type="text"
+                    value={creatorWhatsApp}
+                    onChange={(e) => setCreatorWhatsApp(e.target.value)}
+                    placeholder="+92 300 1234567"
+                    className="w-full px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-zinc-400 mb-1">
+                    Your Gmail / Email
+                  </label>
+                  <input
+                    type="email"
+                    value={creatorGmail}
+                    onChange={(e) => setCreatorGmail(e.target.value)}
+                    placeholder="hamadkhan11h22@gmail.com"
+                    className="w-full px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block text-[11px] text-zinc-400 mb-1">
+                    TikTok Profile URL (Demo Videos)
+                  </label>
+                  <input
+                    type="url"
+                    value={creatorTikTokUrl}
+                    onChange={(e) => setCreatorTikTokUrl(e.target.value)}
+                    placeholder="https://www.tiktok.com/@youraccount"
+                    className="w-full px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-zinc-400 mb-1">
+                    Instagram Profile URL (Reels)
+                  </label>
+                  <input
+                    type="url"
+                    value={creatorInstagramUrl}
+                    onChange={(e) => setCreatorInstagramUrl(e.target.value)}
+                    placeholder="https://www.instagram.com/youraccount"
+                    className="w-full px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

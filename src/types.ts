@@ -2,7 +2,16 @@ export type ProjectStatus = 'draft' | 'in_progress' | 'ready' | 'live' | 'archiv
 
 export type DeploymentPlatform = 'cloudflare' | 'netlify' | 'vercel' | 'github_pages' | 'other';
 
-export type NavigationTab = 'dashboard' | 'projects' | 'deployments' | 'backup';
+export type NavigationTab = 'dashboard' | 'projects' | 'inquiries' | 'deployments' | 'backup';
+
+export type WebsiteOccasion =
+  | 'birthday'
+  | 'feel_special'
+  | 'best_friend'
+  | 'teachers_day'
+  | 'propose'
+  | 'marriage'
+  | 'other';
 
 export type SocialPlatform =
   | 'tiktok'
@@ -102,6 +111,10 @@ export interface Project {
   clientContact?: string;
   status: ProjectStatus;
   theme: string;
+  occasion?: WebsiteOccasion;
+  price?: string; // e.g. "$35"
+  description?: string;
+  isPublicShowcase?: boolean; // Visible on client portal
   coverImageUrl?: string;
   githubRepoUrl?: string;
   liveWebsiteUrl?: string;
@@ -123,9 +136,11 @@ export type PaymentStatus = 'unpaid' | 'deposit_paid' | 'fully_paid' | 'refunded
 export interface ClientRequest {
   id: string;
   clientName: string;
-  clientContact: string;
+  clientContact: string; // WhatsApp or Phone
+  clientGmail?: string; // Gmail or Email
   recipientName: string;
   websiteType: string;
+  occasion?: WebsiteOccasion;
   requirements: string;
   budget: string;
   paymentStatus: PaymentStatus;
@@ -141,6 +156,14 @@ export interface ClientRequest {
 export interface AppSettings {
   creatorName: string;
   studioName: string;
+  adminUsername?: string; // Username to access private admin dashboard (default: "hamad")
+  adminPasscode?: string; // Secret key / password to access the private admin dashboard
+  adminRecoveryEmail?: string; // Recovery email for reset code (hamadkhadim474@gmail.com)
+  creatorWhatsApp?: string;
+  creatorGmail?: string;
+  creatorTikTokUrl?: string;
+  creatorInstagramUrl?: string;
+  creatorYouTubeUrl?: string;
   defaultDeploymentPlatform: DeploymentPlatform;
   defaultTheme: string;
   defaultPlatform?: DeploymentPlatform;

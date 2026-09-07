@@ -170,14 +170,38 @@ export const RequestBoard: React.FC<RequestBoardProps> = ({
                           </div>
 
                           {/* Contact & Style */}
-                          <div className="text-xs text-zinc-400 space-y-1 bg-zinc-950/60 p-2.5 rounded-lg border border-zinc-800/60">
+                          <div className="text-xs text-zinc-400 space-y-1.5 bg-zinc-950/60 p-2.5 rounded-lg border border-zinc-800/60">
                             {req.clientContact && (
-                              <div className="truncate text-zinc-300">
-                                💬 {req.clientContact}
+                              <div className="flex items-center justify-between gap-1 text-zinc-300">
+                                <span className="truncate">📱 {req.clientContact}</span>
+                                <a
+                                  href={`https://wa.me/${req.clientContact.replace(/[^0-9]/g, '')}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[10px] font-semibold text-emerald-400 hover:underline shrink-0"
+                                >
+                                  WhatsApp
+                                </a>
                               </div>
                             )}
-                            <div className="text-zinc-400 truncate">
-                              🎨 {req.websiteType}
+                            {req.clientGmail && (
+                              <div className="flex items-center justify-between gap-1 text-zinc-300">
+                                <span className="truncate">✉️ {req.clientGmail}</span>
+                                <a
+                                  href={`mailto:${req.clientGmail}?subject=Your Custom Website for ${encodeURIComponent(req.recipientName)}`}
+                                  className="text-[10px] font-semibold text-amber-400 hover:underline shrink-0"
+                                >
+                                  Email
+                                </a>
+                              </div>
+                            )}
+                            <div className="text-zinc-400 truncate flex items-center justify-between">
+                              <span>🎨 {req.websiteType}</span>
+                              {req.occasion && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
+                                  {req.occasion}
+                                </span>
+                              )}
                             </div>
                             {req.dueDate && (
                               <div className="text-amber-400/90 font-medium flex items-center gap-1">

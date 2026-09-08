@@ -16,6 +16,7 @@ import {
   MoreHorizontal
 } from 'lucide-react';
 import { Project, SocialPlatform } from '../../types';
+import { formatPrice } from '../../utils/formatters';
 
 interface ProjectCardProps {
   project: Project;
@@ -162,7 +163,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         <div className="flex items-center gap-2">
           {project.price && (
             <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-              {project.price}
+              {formatPrice(project.price)}
             </span>
           )}
           {getStatusBadge(project.status)}

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Project, DeploymentPlatform, ProjectStatus, SocialLink, WebsiteOccasion } from '../../types';
 import { defaultBirthdaySiteData } from '../../data/initialData';
+import { compressImageFile } from '../../utils/imageCompression';
+import { formatPrice } from '../../utils/formatters';
 import {
   X,
   Sparkles,
@@ -56,10 +58,11 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
   const [status, setStatus] = useState<ProjectStatus>('in_progress');
   const [theme, setTheme] = useState('Romantic Rose & Gold');
   const [occasion, setOccasion] = useState<WebsiteOccasion>('birthday');
-  const [price, setPrice] = useState('$35');
+  const [price, setPrice] = useState('PKR 1,500');
   const [description, setDescription] = useState('');
   const [isPublicShowcase, setIsPublicShowcase] = useState(true);
   const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [isCompressing, setIsCompressing] = useState(false);
   const [deploymentPlatform, setDeploymentPlatform] = useState<DeploymentPlatform>('cloudflare');
   const [liveWebsiteUrl, setLiveWebsiteUrl] = useState('');
   const [githubRepoUrl, setGithubRepoUrl] = useState('');
@@ -77,7 +80,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
       setStatus(projectToEdit.status);
       setTheme(projectToEdit.theme);
       setOccasion(projectToEdit.occasion || 'birthday');
-      setPrice(projectToEdit.price || '$35');
+      setPrice(projectToEdit.price ? formatPrice(projectToEdit.price) : 'PKR 1,500');
       setDescription(projectToEdit.description || '');
       setIsPublicShowcase(projectToEdit.isPublicShowcase !== false);
       setCoverImageUrl(projectToEdit.coverImageUrl || '');
@@ -95,7 +98,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
       setStatus('in_progress');
       setTheme('Romantic Rose & Gold');
       setOccasion('birthday');
-      setPrice('$35');
+      setPrice('PKR 1,500');
       setDescription('');
       setIsPublicShowcase(true);
       setCoverImageUrl('');
@@ -114,7 +117,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
       setStatus('in_progress');
       setTheme('Romantic Rose & Gold');
       setOccasion('birthday');
-      setPrice('$35');
+      setPrice('PKR 1,500');
       setDescription('');
       setIsPublicShowcase(true);
       setCoverImageUrl('');
@@ -129,21 +132,31 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Please choose an image under 5MB.');
+      if (file.size > 12 * 1024 * 1024) {
+        alert('Please choose an image under 12MB.');
         return;
       }
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const result = event.target?.result as string;
-        if (result) {
-          setCoverImageUrl(result);
-        }
-      };
-      reader.readAsDataURL(file);
+      try {
+        setIsCompressing(true);
+        // Automatically compress image to lightweight, web-optimized format (< 120KB)
+        const compressedDataUrl = await compressImageFile(file, 1200, 800, 0.82);
+        setCoverImageUrl(compressedDataUrl);
+      } catch (err) {
+        console.error('Failed compressing image, fallback to raw reader:', err);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const result = event.target?.result as string;
+          if (result) {
+            setCoverImageUrl(result);
+          }
+        };
+        reader.readAsDataURL(file);
+      } finally {
+        setIsCompressing(false);
+      }
     }
   };
 
@@ -181,7 +194,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
       status,
       theme: theme.trim() || 'Classic Celebration',
       occasion,
-      price: price.trim() || '$35',
+      price: formatPrice(price || 'PKR 1,500'),
       description: description.trim() || undefined,
       isPublicShowcase,
       coverImageUrl: coverImageUrl.trim() || DEFAULT_PROJECT_COVER,
@@ -328,9 +341,24 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
                   type="text"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  placeholder="e.g. PKR 1,000 to PKR 2,000 (e.g. PKR 1,500)"
+                  placeholder="e.g. PKR 1,500"
                   className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-amber-500"
                 />
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <span className="text-[10px] text-zinc-400">Quick set:</span>
+                  {['PKR 1,000', 'PKR 1,500', 'PKR 2,000', 'PKR 2,500'].map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPrice(p)}
+                      className={`text-[10px] px-2 py-0.5 rounded cursor-pointer transition-colors ${
+                        price === p ? 'bg-amber-500/30 text-amber-300 border border-amber-500/50' : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -417,11 +445,14 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
                 />
                 <button
                   type="button"
+                  disabled={isCompressing}
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-full min-h-[38px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#181a33] hover:bg-[#22244a] border border-purple-500/40 text-purple-200 text-xs font-semibold transition-all cursor-pointer active:scale-98"
+                  className={`w-full h-full min-h-[38px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#181a33] hover:bg-[#22244a] border border-purple-500/40 text-purple-200 text-xs font-semibold transition-all cursor-pointer active:scale-98 ${
+                    isCompressing ? 'opacity-70 cursor-wait' : ''
+                  }`}
                 >
-                  <Upload className="w-3.5 h-3.5 text-purple-300" />
-                  <span>Upload from Device</span>
+                  <Upload className={`w-3.5 h-3.5 text-purple-300 ${isCompressing ? 'animate-bounce' : ''}`} />
+                  <span>{isCompressing ? 'Optimizing...' : 'Upload from Device'}</span>
                 </button>
               </div>
             </div>

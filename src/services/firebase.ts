@@ -13,6 +13,8 @@ import {
 } from 'firebase/firestore';
 import { Project, ClientRequest, AppSettings, SyncState } from '../types';
 import { sampleProjects, sampleClientRequests, defaultAppSettings, defaultBirthdaySiteData } from '../data/initialData';
+import { ensureOptimizedImageUrl } from '../utils/imageCompression';
+import { formatPrice } from '../utils/formatters';
 
 const STORAGE_KEYS = {
   PROJECTS: 'wishcraft_studio_projects_v2',
@@ -104,7 +106,19 @@ export function saveLocalProjects(projects: Project[]): void {
   try {
     localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(projects));
   } catch (err) {
-    console.error('Failed saving local projects:', err);
+    console.error('Failed saving local projects, handling quota fallback:', err);
+    try {
+      // If browser quota exceeded, strip out oversized data URLs from older projects to preserve all project records
+      const sanitized = projects.map((p) => {
+        if (p.coverImageUrl && p.coverImageUrl.startsWith('data:image') && p.coverImageUrl.length > 150000) {
+          return { ...p, coverImageUrl: undefined };
+        }
+        return p;
+      });
+      localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(sanitized));
+    } catch {
+      // ignore
+    }
   }
 }
 
@@ -195,13 +209,17 @@ export function normalizeProject(raw: any, fallbackId?: string): Project {
     clientContact: raw.clientContact || undefined,
     status: raw.status || 'live',
     theme: raw.theme || raw.themeId || 'Romantic Rose & Gold',
+    occasion: raw.occasion || 'birthday',
+    price: raw.price ? formatPrice(raw.price) : undefined,
+    description: raw.description || undefined,
+    isPublicShowcase: raw.isPublicShowcase !== undefined ? Boolean(raw.isPublicShowcase) : true,
     coverImageUrl: raw.coverImageUrl || raw.coverImage || raw.thumbnail || undefined,
     githubRepoUrl: raw.githubRepoUrl || raw.githubUrl || raw.repoUrl || undefined,
     liveWebsiteUrl: raw.liveWebsiteUrl || raw.liveUrl || raw.url || undefined,
     deploymentPlatform: raw.deploymentPlatform || raw.deployPlatform || raw.platform || 'cloudflare',
     deploymentNotes: raw.deploymentNotes || '',
     lastDeployedAt: raw.lastDeployedAt || raw.updatedAt,
-    notes: raw.notes || raw.description || undefined,
+    notes: raw.notes || undefined,
     isPinned: Boolean(raw.isPinned || raw.pinned),
     socialLinks: Array.isArray(raw.socialLinks)
       ? raw.socialLinks
@@ -282,10 +300,9 @@ export function subscribeToProjects(
 
   try {
     const projectsCol = collection(db, 'projects');
-    const q = query(projectsCol, orderBy('updatedAt', 'desc'));
 
     const unsubscribe = onSnapshot(
-      q,
+      projectsCol,
       (snapshot) => {
         if (snapshot.empty) {
           const wasInitialized = localStorage.getItem(STORAGE_KEYS.DB_INITIALIZED) === 'true';
@@ -310,18 +327,61 @@ export function subscribeToProjects(
             }
           });
 
-          // Retain any locally-created or updated project that hasn't made it to the remote snapshot yet
-          // (except for projects that were intentionally deleted)
+          // Intelligent Timestamp-Aware Merge:
+          // Never discard local projects! Compare updatedAt timestamps so recent local edits
+          // (like editing a cover image or changing prices) are NEVER overwritten by stale remote snapshots.
           const currentLocal = getLocalProjects();
-          const pendingLocal = currentLocal.filter((lp) => {
-            if (recentlyDeletedProjectIds.has(lp.id)) return false;
-            const inRemote = remoteItems.some((rp) => rp.id === lp.id);
-            if (inRemote) return false;
-            const ageMs = Date.now() - new Date(lp.updatedAt || 0).getTime();
-            return ageMs < 60000;
+          const projectMap = new Map<string, Project>();
+
+          // 1. First add remote items
+          for (const remote of remoteItems) {
+            if (!recentlyDeletedProjectIds.has(remote.id)) {
+              projectMap.set(remote.id, remote);
+            }
+          }
+
+          // 2. Merge local items
+          for (const local of currentLocal) {
+            if (recentlyDeletedProjectIds.has(local.id)) {
+              projectMap.delete(local.id);
+              continue;
+            }
+
+            const existingRemote = projectMap.get(local.id);
+            if (!existingRemote) {
+              // Local project not yet in remote — KEEP IT!
+              projectMap.set(local.id, local);
+              // Background sync to Firestore so cloud gets it
+              if (db) {
+                const sanitized = sanitizeForFirestore(local);
+                setDoc(doc(db, 'projects', local.id), sanitized, { merge: true }).catch((e) =>
+                  console.warn('[Auto-sync local project to Firestore]:', e)
+                );
+              }
+            } else {
+              // Exists in both: compare timestamps
+              const localTime = new Date(local.updatedAt || local.createdAt || 0).getTime();
+              const remoteTime = new Date(existingRemote.updatedAt || existingRemote.createdAt || 0).getTime();
+              if (localTime > remoteTime) {
+                // Local is NEWER (e.g. freshly edited cover image or title) -> keep local!
+                projectMap.set(local.id, local);
+                // Also ensure Firestore receives the newer version
+                if (db) {
+                  const sanitized = sanitizeForFirestore(local);
+                  setDoc(doc(db, 'projects', local.id), sanitized, { merge: true }).catch((e) =>
+                    console.warn('[Auto-sync newer local to Firestore]:', e)
+                  );
+                }
+              }
+            }
+          }
+
+          const merged = Array.from(projectMap.values()).sort((a, b) => {
+            const timeA = new Date(a.createdAt || a.updatedAt || 0).getTime();
+            const timeB = new Date(b.createdAt || b.updatedAt || 0).getTime();
+            return timeB - timeA;
           });
 
-          const merged = [...pendingLocal, ...remoteItems];
           saveLocalProjects(merged);
           onUpdate(merged);
         }
@@ -357,10 +417,9 @@ export function subscribeToRequests(
 
   try {
     const reqCol = collection(db, 'client_requests');
-    const q = query(reqCol, orderBy('updatedAt', 'desc'));
 
     const unsubscribe = onSnapshot(
-      q,
+      reqCol,
       (snapshot) => {
         if (snapshot.empty) {
           const wasInitialized = localStorage.getItem(STORAGE_KEYS.DB_INITIALIZED) === 'true';
@@ -382,15 +441,50 @@ export function subscribeToRequests(
           });
 
           const currentLocal = getLocalRequests();
-          const pendingLocal = currentLocal.filter((lr) => {
-            if (recentlyDeletedRequestIds.has(lr.id)) return false;
-            const inRemote = remoteItems.some((rr) => rr.id === lr.id);
-            if (inRemote) return false;
-            const ageMs = Date.now() - new Date(lr.updatedAt || 0).getTime();
-            return ageMs < 60000;
+          const reqMap = new Map<string, ClientRequest>();
+
+          for (const remote of remoteItems) {
+            if (!recentlyDeletedRequestIds.has(remote.id)) {
+              reqMap.set(remote.id, remote);
+            }
+          }
+
+          for (const local of currentLocal) {
+            if (recentlyDeletedRequestIds.has(local.id)) {
+              reqMap.delete(local.id);
+              continue;
+            }
+
+            const existingRemote = reqMap.get(local.id);
+            if (!existingRemote) {
+              reqMap.set(local.id, local);
+              if (db) {
+                const sanitized = sanitizeForFirestore(local);
+                setDoc(doc(db, 'client_requests', local.id), sanitized, { merge: true }).catch((e) =>
+                  console.warn('[Auto-sync local request to Firestore]:', e)
+                );
+              }
+            } else {
+              const localTime = new Date(local.updatedAt || local.createdAt || 0).getTime();
+              const remoteTime = new Date(existingRemote.updatedAt || existingRemote.createdAt || 0).getTime();
+              if (localTime > remoteTime) {
+                reqMap.set(local.id, local);
+                if (db) {
+                  const sanitized = sanitizeForFirestore(local);
+                  setDoc(doc(db, 'client_requests', local.id), sanitized, { merge: true }).catch((e) =>
+                    console.warn('[Auto-sync newer request to Firestore]:', e)
+                  );
+                }
+              }
+            }
+          }
+
+          const merged = Array.from(reqMap.values()).sort((a, b) => {
+            const timeA = new Date(a.createdAt || a.updatedAt || 0).getTime();
+            const timeB = new Date(b.createdAt || b.updatedAt || 0).getTime();
+            return timeB - timeA;
           });
 
-          const merged = [...pendingLocal, ...remoteItems];
           saveLocalRequests(merged);
           onUpdate(merged);
         }
@@ -422,8 +516,16 @@ async function seedFirestoreIfEmpty(projects: Project[]) {
 
 // Save or Update a Project
 export async function saveProject(project: Project): Promise<void> {
+  // Compress coverImageUrl if it's a huge base64 data URL to prevent Firestore 1MB rejection
+  let optimizedCover = project.coverImageUrl;
+  if (optimizedCover && optimizedCover.startsWith('data:image') && optimizedCover.length > 200000) {
+    optimizedCover = await ensureOptimizedImageUrl(optimizedCover);
+  }
+
   const updatedProject: Project = {
     ...project,
+    price: project.price ? formatPrice(project.price) : undefined,
+    coverImageUrl: optimizedCover,
     updatedAt: new Date().toISOString(),
   };
 

@@ -19,6 +19,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { Project, ClientRequest, AppSettings, WebsiteOccasion } from '../../types';
+import { formatPrice } from '../../utils/formatters';
 
 interface ClientPortalProps {
   projects: Project[];
@@ -120,7 +121,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
     if (project) {
       setSelectedProjectForOrder(project);
       setOccasion(project.occasion || 'birthday');
-      setBudget(project.price || 'PKR 1,500');
+      setBudget(project.price ? formatPrice(project.price) : 'PKR 1,500');
       setRecipientName(project.recipientName || '');
       setRequirements(`I would love a custom website styled like "${project.name}".`);
     } else {
@@ -428,7 +429,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
 
                       {/* Prominent Price Tag in PKR */}
                       <span className="px-3 py-1 rounded-full text-xs font-black bg-emerald-500 text-zinc-950 shadow-lg shadow-emerald-500/20">
-                        {project.price || 'PKR 1,500'}
+                        {formatPrice(project.price)}
                       </span>
                     </div>
 
@@ -524,7 +525,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                         className="flex-1 py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/10 active:scale-98 transition-all cursor-pointer"
                       >
                         <Send className="w-3.5 h-3.5" />
-                        <span>Order Website ({project.price || 'PKR 1,500'})</span>
+                        <span>Order Website ({formatPrice(project.price)})</span>
                       </button>
 
                       {hasVideo && (
@@ -842,7 +843,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                         <p className="text-xs font-bold text-white">{selectedProjectForOrder.name}</p>
                       </div>
                       <span className="text-xs font-black px-2.5 py-1 rounded-lg bg-emerald-500 text-zinc-950">
-                        {selectedProjectForOrder.price || 'PKR 1,500'}
+                        {formatPrice(selectedProjectForOrder.price)}
                       </span>
                     </div>
                   )}
@@ -976,6 +977,9 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                         onChange={(e) => setBudget(e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
                       >
+                        {budget && !['PKR 1,000', 'PKR 1,200', 'PKR 1,500', 'PKR 1,800', 'PKR 2,000', 'Custom PKR'].includes(budget) && (
+                          <option value={budget}>{budget} (Selected Template Price)</option>
+                        )}
                         <option value="PKR 1,000">PKR 1,000 — Essential Celebration Website</option>
                         <option value="PKR 1,200">PKR 1,200 — Deluxe Interactive (Music + Photo Slideshow)</option>
                         <option value="PKR 1,500">PKR 1,500 — Romance & Proposal Special (Music + Wax Letter)</option>

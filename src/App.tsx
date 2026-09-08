@@ -47,16 +47,11 @@ export default function App() {
     }
   });
 
+  // Strict URL routing: ONLY '#admin' enters admin mode. Removing #client or visiting / always renders client!
   const [viewMode, setViewMode] = useState<'admin' | 'client'>(() => {
-    if (typeof window !== 'undefined') {
-      if (window.location.hash === '#admin') return 'admin';
-      if (window.location.hash === '#client') return 'client';
+    if (typeof window !== 'undefined' && window.location.hash === '#admin') {
+      return 'admin';
     }
-    try {
-      if (sessionStorage.getItem('hamad_admin_authenticated') === 'true') {
-        return 'admin';
-      }
-    } catch {}
     return 'client';
   });
 
@@ -151,39 +146,25 @@ export default function App() {
     };
   }, []);
 
-  // Hash change & Secret Admin shortcut listener (Ctrl + Shift + A)
+  // Hash change listener: strictly routes '#admin' to admin gate, and everything else to client
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash;
       if (hash === '#admin') {
+        setViewMode('admin');
         if (!isAdminAuthenticated) {
           setIsAdminLockModalOpen(true);
-        } else {
-          setViewMode('admin');
         }
-      } else if (hash === '#client') {
+      } else {
+        // Any hash other than '#admin' (e.g. '', '#client', etc.) strictly displays Client Portal
         setViewMode('client');
-      }
-    };
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Secret creator shortcut: Ctrl+Shift+A or Cmd+Shift+A opens admin unlock
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
-        e.preventDefault();
-        if (!isAdminAuthenticated) {
-          setIsAdminLockModalOpen(true);
-        } else {
-          setViewMode('admin');
-          window.location.hash = 'admin';
-        }
+        setIsAdminLockModalOpen(false);
       }
     };
 
     window.addEventListener('hashchange', handleHashChange);
-    window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('hashchange', handleHashChange);
-      window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isAdminAuthenticated]);
 
@@ -462,8 +443,32 @@ export default function App() {
     (r) => r.status === 'new' || r.status === 'in_progress'
   ).length;
 
-  // Render Client Portal if in client viewMode OR if admin not authenticated
-  if (viewMode === 'client' || (!isAdminAuthenticated && viewMode === 'admin')) {
+  // 1. If at #admin but NOT authenticated, render dedicated Admin Login Security Screen
+  if (viewMode === 'admin' && !isAdminAuthenticated) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-zinc-100 font-['Outfit'] flex flex-col items-center justify-center p-4 selection:bg-amber-500/30">
+        <AdminLockModal
+          isOpen={true}
+          onClose={() => {
+            setViewMode('client');
+            window.location.hash = 'client';
+          }}
+          onUnlock={handleUnlockAdmin}
+          settings={settings}
+          onUpdatePasscode={handleUpdatePasscode}
+        />
+        {toastMessage && (
+          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl bg-zinc-900 border border-amber-500/40 text-amber-200 text-xs font-semibold shadow-2xl shadow-black/80 animate-in fade-in slide-in-from-bottom-3">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 2. If at #client (or any default URL /), render Public Client Portal
+  if (viewMode === 'client') {
     return (
       <div className="min-h-screen bg-zinc-950 text-zinc-100 font-['Outfit'] selection:bg-amber-500/30 selection:text-white">
         
@@ -499,21 +504,11 @@ export default function App() {
         <ClientPortal
           projects={projects}
           settings={settings}
-          onOpenAdminLogin={() => setIsAdminLockModalOpen(true)}
-          onSubmitOrder={handleClientSubmitOrder}
-        />
-
-        {/* Admin Passcode Lock Modal */}
-        <AdminLockModal
-          isOpen={isAdminLockModalOpen || (viewMode === 'admin' && !isAdminAuthenticated)}
-          onClose={() => {
-            setIsAdminLockModalOpen(false);
-            setViewMode('client');
-            window.location.hash = 'client';
+          onOpenAdminLogin={() => {
+            setViewMode('admin');
+            window.location.hash = 'admin';
           }}
-          onUnlock={handleUnlockAdmin}
-          settings={settings}
-          onUpdatePasscode={handleUpdatePasscode}
+          onSubmitOrder={handleClientSubmitOrder}
         />
 
         {/* Toast Notification */}

@@ -751,34 +751,39 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
 
       {/* 8. Order / Leave a DM Inquiry Modal */}
       {isOrderModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
-          <div className="relative w-full max-w-xl bg-zinc-900 border border-amber-500/30 rounded-3xl shadow-2xl overflow-hidden my-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/90 backdrop-blur-md overflow-y-auto">
+          <div className="relative w-full max-w-xl max-h-[92vh] flex flex-col bg-zinc-900 border border-amber-500/30 rounded-3xl shadow-2xl overflow-hidden my-auto">
             
-            {/* Modal Header */}
-            <div className="p-5 sm:p-6 border-b border-zinc-800 flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-zinc-900 to-rose-500/10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+            {/* Modal Header with High-Visibility Cut (Close) Icon */}
+            <div className="sticky top-0 z-20 shrink-0 px-5 py-4 sm:px-6 sm:py-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/95 backdrop-blur-md">
+              <div className="flex items-center gap-3 min-w-0 pr-2">
+                <div className="w-10 h-10 shrink-0 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
                   <Send className="w-5 h-5" />
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white font-['Outfit']">
+                <div className="min-w-0">
+                  <h3 className="text-base sm:text-lg font-bold text-white font-['Outfit'] truncate">
                     {orderSuccess ? 'Order Inquiry Sent!' : 'Order a Custom Website & Leave DM'}
                   </h3>
-                  <p className="text-xs text-zinc-400">
+                  <p className="text-xs text-zinc-400 truncate">
                     Directly sent to Hamad&apos;s main website dashboard.
                   </p>
                 </div>
               </div>
+
+              {/* Cut Icon (Close X Button) - High Contrast & Unhidden */}
               <button
+                type="button"
                 onClick={() => setIsOrderModalOpen(false)}
-                className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                title="Close (Cut) dialog"
+                aria-label="Close"
+                className="shrink-0 w-10 h-10 rounded-full bg-zinc-800 hover:bg-rose-500/20 text-zinc-200 hover:text-rose-400 border border-zinc-700 hover:border-rose-500/50 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-md"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5 stroke-[2.5]" />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-5 sm:p-6">
+            <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4">
               {orderSuccess ? (
                 <div className="py-6 text-center space-y-4">
                   <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto">
@@ -995,22 +1000,31 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     />
                   </div>
 
-                  {/* Submit Button */}
+                  {/* Submit Button & Cancel Action */}
                   <div className="pt-2 space-y-2.5">
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 disabled:opacity-50 text-zinc-950 font-bold text-sm flex items-center justify-center gap-2 shadow-xl shadow-amber-500/20 active:scale-98 transition-all cursor-pointer"
-                    >
-                      {isSubmitting ? (
-                        <span>Sending Your Order to Hamad...</span>
-                      ) : (
-                        <>
-                          <Send className="w-4 h-4" />
-                          <span>Submit Order to Hamad&apos;s Main Website DM</span>
-                        </>
-                      )}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setIsOrderModalOpen(false)}
+                        className="py-3 px-5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="flex-1 py-3 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 disabled:opacity-50 text-zinc-950 font-bold text-sm flex items-center justify-center gap-2 shadow-xl shadow-amber-500/20 active:scale-98 transition-all cursor-pointer"
+                      >
+                        {isSubmitting ? (
+                          <span>Sending Your Order to Hamad...</span>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4" />
+                            <span>Submit Order to Hamad&apos;s Main Website DM</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
 
                     <div className="flex items-center justify-center gap-4 pt-1">
                       <a

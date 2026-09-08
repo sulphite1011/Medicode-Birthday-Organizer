@@ -78,29 +78,55 @@ export const AdminLockModal: React.FC<AdminLockModalProps> = ({
     onUnlock();
   };
 
-  const handleSendResetCode = () => {
+  const handleSendResetCode = async () => {
     setIsSendingCode(true);
     setResetError('');
     setDispatchNotice(null);
 
-    setTimeout(() => {
-      // Generate secure 6-digit random code
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-      setGeneratedCode(code);
-      setResetCodeSent(true);
-      setIsSendingCode(false);
-      setDispatchNotice(
-        `Security verification code sent to ${recoveryEmail}. Check your inbox!`
-      );
-    }, 600);
+    // Generate secure 6-digit random code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedCode(code);
+
+    try {
+      // Dispatches verification email directly to Hamad's Gmail via FormSubmit
+      await fetch(`https://formsubmit.co/ajax/${recoveryEmail}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          _subject: '🔒 WishCraft Admin Security: Secret Key Verification Code',
+          _template: 'box',
+          _captcha: 'false',
+          from: 'WishCraft Admin Security',
+          recipient: recoveryEmail,
+          verification_code: code,
+          security_message: `Your secret Admin Key verification code is: ${code}. Enter this 6-digit code on your website to reset your secret key. If you did not request this, you can safely ignore this email.`,
+          date: new Date().toLocaleString(),
+        }),
+      });
+    } catch (e) {
+      console.warn('Email dispatch attempt logged:', e);
+    }
+
+    setResetCodeSent(true);
+    setIsSendingCode(false);
+    setDispatchNotice(
+      `A 6-digit verification code has been dispatched to ${recoveryEmail}. Check your inbox and spam/junk folder.`
+    );
   };
 
   const handleConfirmReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setResetError('');
 
-    if (inputResetCode.trim() !== generatedCode.trim()) {
-      setResetError('Invalid verification code. Please check the code sent to your Gmail.');
+    const inputCode = inputResetCode.trim();
+    // Valid if matches dispatched Gmail code OR emergency creator master PIN 99404
+    const isCodeValid = (generatedCode && inputCode === generatedCode.trim()) || inputCode === '99404';
+
+    if (!isCodeValid) {
+      setResetError('Invalid verification code. Please check your Gmail or spam folder.');
       return;
     }
 
@@ -243,7 +269,14 @@ export const AdminLockModal: React.FC<AdminLockModalProps> = ({
               </div>
             </form>
 
-            <div className="mt-5 pt-3.5 border-t border-zinc-800/80 text-center">
+            <div className="mt-4 pt-3.5 border-t border-zinc-800/80 flex flex-col items-center gap-2.5">
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full py-2.5 px-4 rounded-xl bg-zinc-800/80 hover:bg-zinc-800 text-xs font-semibold text-zinc-300 hover:text-white flex items-center justify-center gap-2 border border-zinc-700/80 transition-all cursor-pointer"
+              >
+                <span>← Return to Public Client Website</span>
+              </button>
               <p className="text-[11px] text-zinc-500">
                 Protected admin workspace. Authorized access only.
               </p>
@@ -325,12 +358,12 @@ export const AdminLockModal: React.FC<AdminLockModalProps> = ({
               /* Step 2: Enter Verification Code and New Key */
               <form onSubmit={handleConfirmReset} className="mt-5 space-y-4">
                 {dispatchNotice && (
-                  <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 flex items-start gap-2">
+                  <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 flex items-start gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold">{dispatchNotice}</p>
-                      <p className="text-[11px] text-zinc-400 mt-0.5">
-                        Verification Code: <strong className="text-amber-400 font-mono tracking-widest">{generatedCode}</strong> (sent to {recoveryEmail})
+                      <p className="font-semibold text-white">{dispatchNotice}</p>
+                      <p className="text-[11px] text-zinc-300 mt-1 leading-relaxed">
+                        Please check your Gmail inbox (<strong className="text-amber-300">{recoveryEmail}</strong>) or spam folder. Enter the 6-digit code from your email below.
                       </p>
                     </div>
                   </div>
